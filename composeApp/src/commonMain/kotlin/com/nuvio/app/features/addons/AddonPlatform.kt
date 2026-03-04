@@ -5,4 +5,4 @@ internal expect object AddonStorage {
     fun saveInstalledAddonUrls(urls: List<String>)
 }
 
-internal expect suspend fun httpGetText(url: String): String
+expect suspend fun httpGetText(url: String): String

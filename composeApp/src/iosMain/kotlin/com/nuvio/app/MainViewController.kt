@@ -11,7 +11,7 @@ private fun nuvioViewController(
         AppScreen(tab = tab)
     }
 }.apply {
-    view.backgroundColor = UIColor.blackColor
+    view.backgroundColor = UIColor(red = 0.008, green = 0.016, blue = 0.016, alpha = 1.0)
 }
 
 fun HomeViewController() = nuvioViewController(tab = AppScreenTab.Home)
