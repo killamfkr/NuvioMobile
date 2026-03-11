@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -45,17 +48,18 @@ fun NuvioScreen(
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(
-            start = 18.dp,
-            top = 12.dp + nuvioPlatformExtraTopPadding,
-            end = 18.dp,
-            bottom = 22.dp + nuvioPlatformExtraBottomPadding,
+            start = 16.dp,
+            top = 10.dp + statusBarTop + nuvioPlatformExtraTopPadding,
+            end = 16.dp,
+            bottom = 18.dp + nuvioPlatformExtraBottomPadding,
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         content = content,
     )
 }
@@ -86,8 +90,12 @@ fun NuvioScreenHeader(
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(top = statusBarTop, bottom = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom,
     ) {

@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Extension
@@ -74,6 +75,7 @@ fun App() {
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets(0),
             bottomBar = {
                 if (currentRoute == TabsRoute::class.qualifiedName) {
                     NavigationBar(

@@ -8,12 +8,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nuvio.app.core.ui.NuvioIconActionButton
 import com.nuvio.app.core.ui.NuvioScreen
-import com.nuvio.app.core.ui.NuvioScreenHeader
 import com.nuvio.app.features.addons.AddonRepository
 import com.nuvio.app.features.home.components.HomeCatalogRowSection
 import com.nuvio.app.features.home.components.HomeEmptyStateCard
+import com.nuvio.app.features.home.components.HomeSkeletonRow
 
 @Composable
 fun HomeScreen(
@@ -45,18 +44,6 @@ fun HomeScreen(
     }
 
     NuvioScreen(modifier = modifier) {
-        item {
-            NuvioScreenHeader(
-                title = "Home",
-            ) {
-                NuvioIconActionButton(
-                    icon = Icons.Rounded.Refresh,
-                    contentDescription = "Refresh catalog rows",
-                    onClick = { HomeRepository.refresh(addonsUiState.addons, force = true) },
-                )
-            }
-        }
-
         when {
             addonsUiState.addons.none { it.manifest != null } -> {
                 item {
@@ -68,11 +55,8 @@ fun HomeScreen(
             }
 
             homeUiState.isLoading && homeUiState.sections.isEmpty() -> {
-                item {
-                    HomeEmptyStateCard(
-                        title = "Loading catalogs",
-                        message = "Pulling feed-compatible catalogs from your installed addons.",
-                    )
+                items(3) {
+                    HomeSkeletonRow()
                 }
             }
 

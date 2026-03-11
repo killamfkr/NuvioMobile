@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeCatalogSectionHeader(
     title: String,
-    subtitle: String,
     modifier: Modifier = Modifier,
     onViewAllClick: (() -> Unit)? = null,
 ) {
@@ -39,28 +38,20 @@ fun HomeCatalogSectionHeader(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Box(
                 modifier = Modifier
-                    .padding(top = 8.dp)
-                    .width(82.dp)
-                    .height(6.dp)
+                    .padding(top = 6.dp)
+                    .width(60.dp)
+                    .height(4.dp)
                     .background(
                         color = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(999.dp),
                     ),
-            )
-            Text(
-                text = subtitle,
-                modifier = Modifier.padding(top = 10.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
         ViewAllPill(

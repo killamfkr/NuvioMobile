@@ -21,15 +21,14 @@ fun HomeCatalogRowSection(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         HomeCatalogSectionHeader(
             title = section.title,
-            subtitle = section.subtitle,
             onViewAllClick = onViewAllClick,
         )
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(
                 items = section.items,

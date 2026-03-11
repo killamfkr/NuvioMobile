@@ -74,7 +74,7 @@ fun AddonsScreen(
     val overview = remember(sortedAddons) { sortedAddons.toOverview() }
 
     NuvioScreen(modifier = modifier) {
-        item {
+        stickyHeader {
             NuvioScreenHeader(
                 title = "Addons",
             ) {

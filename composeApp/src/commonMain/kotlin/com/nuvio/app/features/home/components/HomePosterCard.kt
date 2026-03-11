@@ -33,15 +33,15 @@ fun HomePosterCard(
 ) {
     Column(
         modifier = modifier
-            .width(142.dp)
+            .width(110.dp)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(item.posterShape.aspectRatio)
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center,
         ) {
@@ -66,7 +66,7 @@ fun HomePosterCard(
         }
         Text(
             text = item.name,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -75,7 +75,7 @@ fun HomePosterCard(
         if (detailLine.isNotBlank()) {
             Text(
                 text = detailLine,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
