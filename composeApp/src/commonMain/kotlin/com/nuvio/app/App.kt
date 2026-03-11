@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -161,8 +162,15 @@ fun App() {
                 containerColor = MaterialTheme.colorScheme.background,
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
+                    val navigationItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         windowInsets = nuvioBottomNavigationBarInsets(),
                     ) {
                         NavigationBarItem(
@@ -170,18 +178,21 @@ fun App() {
                             onClick = { selectedTab = AppScreenTab.Home },
                             icon = { Icon(Icons.Rounded.Home, contentDescription = null) },
                             label = { Text("Home") },
+                            colors = navigationItemColors,
                         )
                         NavigationBarItem(
                             selected = selectedTab == AppScreenTab.Search,
                             onClick = { selectedTab = AppScreenTab.Search },
                             icon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                             label = { Text("Search") },
+                            colors = navigationItemColors,
                         )
                         NavigationBarItem(
                             selected = selectedTab == AppScreenTab.Settings,
                             onClick = { selectedTab = AppScreenTab.Settings },
                             icon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
                             label = { Text("Settings") },
+                            colors = navigationItemColors,
                         )
                     }
                 },
