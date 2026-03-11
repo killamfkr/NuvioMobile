@@ -15,12 +15,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -59,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -99,6 +101,7 @@ fun PlayerScreen(
             .fillMaxSize()
             .background(Color.Black),
     ) {
+        val horizontalSafePadding = playerHorizontalSafePadding()
         val metrics = remember(maxWidth) { PlayerLayoutMetrics.fromWidth(maxWidth) }
         val scope = rememberCoroutineScope()
         var controlsVisible by rememberSaveable { mutableStateOf(true) }
@@ -248,6 +251,7 @@ fun PlayerScreen(
                     streamSubtitle = streamSubtitle,
                     providerName = providerName,
                     metrics = metrics,
+                    horizontalSafePadding = horizontalSafePadding,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -279,6 +283,7 @@ fun PlayerScreen(
                         scrubbingPositionMs = null
                         playerController?.seekTo(positionMs)
                     },
+                    horizontalSafePadding = horizontalSafePadding,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -292,6 +297,7 @@ fun PlayerScreen(
                     artwork = backdropArtwork,
                     logo = logo,
                     onBack = onBack,
+                    horizontalSafePadding = horizontalSafePadding,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -308,7 +314,8 @@ fun PlayerScreen(
                         message = gestureMessage.orEmpty(),
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+                            .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Top))
+                            .padding(horizontal = horizontalSafePadding)
                             .padding(top = 40.dp),
                     )
                 }
@@ -345,6 +352,7 @@ private fun PlayerControlsShell(
     onSpeedClick: () -> Unit,
     onScrubChange: (Long) -> Unit,
     onScrubFinished: (Long) -> Unit,
+    horizontalSafePadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -378,49 +386,55 @@ private fun PlayerControlsShell(
                 ),
         )
 
-        PlayerHeader(
-            title = title,
-            streamTitle = streamTitle,
-            providerName = providerName,
-            seasonNumber = seasonNumber,
-            episodeNumber = episodeNumber,
-            episodeTitle = episodeTitle,
-            backendLabel = "Android · Media3 ExoPlayer",
-            metrics = metrics,
-            onBack = onBack,
+        Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-                .padding(horizontal = metrics.horizontalPadding, vertical = metrics.verticalPadding),
-        )
+                .fillMaxSize()
+                .padding(horizontal = horizontalSafePadding),
+        ) {
+            PlayerHeader(
+                title = title,
+                streamTitle = streamTitle,
+                providerName = providerName,
+                seasonNumber = seasonNumber,
+                episodeNumber = episodeNumber,
+                episodeTitle = episodeTitle,
+                backendLabel = "Android · Media3 ExoPlayer",
+                metrics = metrics,
+                onBack = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Top))
+                    .padding(horizontal = metrics.horizontalPadding, vertical = metrics.verticalPadding),
+            )
 
-        CenterControls(
-            snapshot = playbackSnapshot,
-            metrics = metrics,
-            onSeekBack = onSeekBack,
-            onSeekForward = onSeekForward,
-            onTogglePlayback = onTogglePlayback,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(bottom = metrics.centerLift),
-        )
+            CenterControls(
+                snapshot = playbackSnapshot,
+                metrics = metrics,
+                onSeekBack = onSeekBack,
+                onSeekForward = onSeekForward,
+                onTogglePlayback = onTogglePlayback,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(bottom = metrics.centerLift),
+            )
 
-        ProgressControls(
-            playbackSnapshot = playbackSnapshot,
-            displayedPositionMs = displayedPositionMs,
-            metrics = metrics,
-            resizeMode = resizeMode,
-            onScrubChange = onScrubChange,
-            onScrubFinished = onScrubFinished,
-            onResizeModeClick = onResizeModeClick,
-            onSpeedClick = onSpeedClick,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = metrics.horizontalPadding)
-                .padding(bottom = metrics.sliderBottomOffset),
-        )
+            ProgressControls(
+                playbackSnapshot = playbackSnapshot,
+                displayedPositionMs = displayedPositionMs,
+                metrics = metrics,
+                resizeMode = resizeMode,
+                onScrubChange = onScrubChange,
+                onScrubFinished = onScrubFinished,
+                onResizeModeClick = onResizeModeClick,
+                onSpeedClick = onSpeedClick,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = metrics.horizontalPadding)
+                    .padding(bottom = metrics.sliderBottomOffset),
+            )
+        }
     }
 }
 
@@ -742,6 +756,7 @@ private fun OpeningOverlay(
     artwork: String?,
     logo: String?,
     onBack: () -> Unit,
+    horizontalSafePadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -773,11 +788,11 @@ private fun OpeningOverlay(
 
         Box(
             modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-                    .padding(top = 20.dp, end = 20.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.3f))
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Top))
+                .padding(top = 20.dp, start = horizontalSafePadding, end = horizontalSafePadding + 20.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.3f))
                 .clickable(onClick = onBack)
                 .padding(10.dp),
             contentAlignment = Alignment.Center,
@@ -862,6 +877,7 @@ private fun PauseMetadataOverlay(
     streamSubtitle: String?,
     providerName: String,
     metrics: PlayerLayoutMetrics,
+    horizontalSafePadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -875,8 +891,13 @@ private fun PauseMetadataOverlay(
                     ),
                 ),
             )
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 24.dp, vertical = 24.dp),
+            .windowInsetsPadding(WindowInsets.safeContent)
+            .padding(
+                start = 24.dp + horizontalSafePadding,
+                end = 24.dp + horizontalSafePadding,
+                top = 24.dp,
+                bottom = 24.dp,
+            ),
         verticalArrangement = Arrangement.Bottom,
     ) {
         Text(
@@ -926,6 +947,15 @@ private fun PauseMetadataOverlay(
             )
         }
     }
+}
+
+@Composable
+private fun playerHorizontalSafePadding(): Dp {
+    val layoutDirection = LocalLayoutDirection.current
+    val safePadding = WindowInsets.safeContent.asPaddingValues()
+    val left = safePadding.calculateLeftPadding(layoutDirection)
+    val right = safePadding.calculateRightPadding(layoutDirection)
+    return if (left > right) left else right
 }
 
 @Composable
