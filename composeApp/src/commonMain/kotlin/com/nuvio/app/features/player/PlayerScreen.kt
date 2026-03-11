@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,6 +52,10 @@ fun PlayerScreen(
 ) {
     LockPlayerToLandscape()
     EnterImmersivePlayerMode()
+    val playerSettingsUiState by remember {
+        PlayerSettingsRepository.ensureLoaded()
+        PlayerSettingsRepository.uiState
+    }.collectAsStateWithLifecycle()
 
     BoxWithConstraints(
         modifier = modifier
@@ -245,7 +250,7 @@ fun PlayerScreen(
             }
 
             AnimatedVisibility(
-                visible = !initialLoadCompleted && errorMessage == null,
+                visible = playerSettingsUiState.showLoadingOverlay && !initialLoadCompleted && errorMessage == null,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {

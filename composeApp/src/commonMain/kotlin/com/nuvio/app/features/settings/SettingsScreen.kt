@@ -39,6 +39,7 @@ import com.nuvio.app.core.ui.NuvioScreenHeader
 import com.nuvio.app.features.addons.AddonRepository
 import com.nuvio.app.features.home.HomeCatalogSettingsItem
 import com.nuvio.app.features.home.HomeCatalogSettingsRepository
+import com.nuvio.app.features.player.PlayerSettingsRepository
 
 @Composable
 fun SettingsScreen(
@@ -55,6 +56,10 @@ fun SettingsScreen(
 
         val addonsUiState by AddonRepository.uiState.collectAsStateWithLifecycle()
         val homescreenSettingsUiState by HomeCatalogSettingsRepository.uiState.collectAsStateWithLifecycle()
+        val playerSettingsUiState by remember {
+            PlayerSettingsRepository.ensureLoaded()
+            PlayerSettingsRepository.uiState
+        }.collectAsStateWithLifecycle()
 
         LaunchedEffect(addonsUiState.addons) {
             HomeCatalogSettingsRepository.syncCatalogs(addonsUiState.addons)
@@ -75,6 +80,7 @@ fun SettingsScreen(
                 onPageChange = { currentPage = it.name },
                 heroEnabled = homescreenSettingsUiState.heroEnabled,
                 homescreenSettings = homescreenSettingsUiState.items,
+                showLoadingOverlay = playerSettingsUiState.showLoadingOverlay,
             )
         } else {
             MobileSettingsScreen(
@@ -82,6 +88,7 @@ fun SettingsScreen(
                 onPageChange = { currentPage = it.name },
                 heroEnabled = homescreenSettingsUiState.heroEnabled,
                 homescreenSettings = homescreenSettingsUiState.items,
+                showLoadingOverlay = playerSettingsUiState.showLoadingOverlay,
             )
         }
     }
@@ -93,6 +100,7 @@ private fun MobileSettingsScreen(
     onPageChange: (SettingsPage) -> Unit,
     heroEnabled: Boolean,
     homescreenSettings: List<HomeCatalogSettingsItem>,
+    showLoadingOverlay: Boolean,
 ) {
     NuvioScreen {
         stickyHeader {
@@ -106,7 +114,12 @@ private fun MobileSettingsScreen(
         when (page) {
             SettingsPage.Root -> settingsRootContent(
                 isTablet = false,
+                onPlaybackClick = { onPageChange(SettingsPage.Playback) },
                 onContentDiscoveryClick = { onPageChange(SettingsPage.ContentDiscovery) },
+            )
+            SettingsPage.Playback -> playbackSettingsContent(
+                isTablet = false,
+                showLoadingOverlay = showLoadingOverlay,
             )
             SettingsPage.ContentDiscovery -> contentDiscoveryContent(
                 isTablet = false,
@@ -114,11 +127,11 @@ private fun MobileSettingsScreen(
                 onHomescreenClick = { onPageChange(SettingsPage.Homescreen) },
             )
             SettingsPage.Addons -> addonsSettingsContent()
-                SettingsPage.Homescreen -> homescreenSettingsContent(
-                    isTablet = false,
-                    heroEnabled = heroEnabled,
-                    items = homescreenSettings,
-                )
+            SettingsPage.Homescreen -> homescreenSettingsContent(
+                isTablet = false,
+                heroEnabled = heroEnabled,
+                items = homescreenSettings,
+            )
         }
     }
 }
@@ -129,6 +142,7 @@ private fun TabletSettingsScreen(
     onPageChange: (SettingsPage) -> Unit,
     heroEnabled: Boolean,
     homescreenSettings: List<HomeCatalogSettingsItem>,
+    showLoadingOverlay: Boolean,
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf(SettingsCategory.General.name) }
     val activeCategory = SettingsCategory.valueOf(selectedCategory)
@@ -191,7 +205,12 @@ private fun TabletSettingsScreen(
             when (page) {
                 SettingsPage.Root -> settingsRootContent(
                     isTablet = true,
+                    onPlaybackClick = { onPageChange(SettingsPage.Playback) },
                     onContentDiscoveryClick = { onPageChange(SettingsPage.ContentDiscovery) },
+                )
+                SettingsPage.Playback -> playbackSettingsContent(
+                    isTablet = true,
+                    showLoadingOverlay = showLoadingOverlay,
                 )
                 SettingsPage.ContentDiscovery -> contentDiscoveryContent(
                     isTablet = true,
