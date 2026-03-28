@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Search
@@ -28,6 +29,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -101,41 +104,6 @@ enum class AppScreenTab {
     Search,
     Library,
     Settings,
-}
-
-@Composable
-fun AppScreen(
-    tab: AppScreenTab,
-    modifier: Modifier = Modifier,
-    onCatalogClick: ((HomeCatalogSection) -> Unit)? = null,
-    onPosterClick: ((MetaPreview) -> Unit)? = null,
-    onPosterLongClick: ((MetaPreview) -> Unit)? = null,
-    onLibraryPosterClick: ((LibraryItem) -> Unit)? = null,
-    onContinueWatchingClick: ((ContinueWatchingItem) -> Unit)? = null,
-    onContinueWatchingLongPress: ((ContinueWatchingItem) -> Unit)? = null,
-) {
-    when (tab) {
-        AppScreenTab.Home -> HomeScreen(
-            modifier = modifier,
-            onCatalogClick = onCatalogClick,
-            onPosterClick = onPosterClick,
-            onPosterLongClick = onPosterLongClick,
-            onContinueWatchingClick = onContinueWatchingClick,
-            onContinueWatchingLongPress = onContinueWatchingLongPress,
-        )
-        AppScreenTab.Search -> SearchScreen(
-            modifier = modifier,
-            onPosterClick = onPosterClick,
-            onPosterLongClick = onPosterLongClick,
-        )
-        AppScreenTab.Library -> LibraryScreen(
-            modifier = modifier,
-            onPosterClick = onLibraryPosterClick,
-        )
-        AppScreenTab.Settings -> SettingsScreen(
-            modifier = modifier,
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,11 +244,11 @@ fun App() {
                     }
                 },
             ) { innerPadding ->
-                AppScreen(
-                    tab = selectedTab,
+                AppTabHost(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
+                    selectedTab = selectedTab,
                     onCatalogClick = onCatalogClick,
                     onPosterClick = { meta ->
                         navController.navigate(DetailRoute(type = meta.type, id = meta.id))
@@ -436,5 +404,71 @@ fun App() {
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun AppTabHost(
+    selectedTab: AppScreenTab,
+    modifier: Modifier = Modifier,
+    onCatalogClick: ((HomeCatalogSection) -> Unit)? = null,
+    onPosterClick: ((MetaPreview) -> Unit)? = null,
+    onPosterLongClick: ((MetaPreview) -> Unit)? = null,
+    onLibraryPosterClick: ((LibraryItem) -> Unit)? = null,
+    onContinueWatchingClick: ((ContinueWatchingItem) -> Unit)? = null,
+    onContinueWatchingLongPress: ((ContinueWatchingItem) -> Unit)? = null,
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        keepAliveTab(
+            selected = selectedTab == AppScreenTab.Home,
+        ) {
+            HomeScreen(
+                modifier = Modifier.fillMaxSize(),
+                onCatalogClick = onCatalogClick,
+                onPosterClick = onPosterClick,
+                onPosterLongClick = onPosterLongClick,
+                onContinueWatchingClick = onContinueWatchingClick,
+                onContinueWatchingLongPress = onContinueWatchingLongPress,
+            )
+        }
+        keepAliveTab(
+            selected = selectedTab == AppScreenTab.Search,
+        ) {
+            SearchScreen(
+                modifier = Modifier.fillMaxSize(),
+                onPosterClick = onPosterClick,
+                onPosterLongClick = onPosterLongClick,
+            )
+        }
+        keepAliveTab(
+            selected = selectedTab == AppScreenTab.Library,
+        ) {
+            LibraryScreen(
+                modifier = Modifier.fillMaxSize(),
+                onPosterClick = onLibraryPosterClick,
+            )
+        }
+        keepAliveTab(
+            selected = selectedTab == AppScreenTab.Settings,
+        ) {
+            SettingsScreen(
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.keepAliveTab(
+    selected: Boolean,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(if (selected) 1f else 0f)
+            .zIndex(if (selected) 1f else 0f),
+    ) {
+        content()
     }
 }
