@@ -1,19 +1,49 @@
 package com.nuvio.app.features.library
 
+import co.touchlab.kermit.Logger
+import com.nuvio.app.core.network.SupabaseProvider
+import com.nuvio.app.features.profiles.ProfileRepository
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.put
 
 @Serializable
 private data class StoredLibraryPayload(
     val items: List<LibraryItem> = emptyList(),
 )
 
+@Serializable
+private data class LibrarySyncItem(
+    @SerialName("content_id") val contentId: String,
+    @SerialName("content_type") val contentType: String,
+    val name: String = "",
+    val poster: String? = null,
+    @SerialName("poster_shape") val posterShape: String = "POSTER",
+    val background: String? = null,
+    val description: String? = null,
+    @SerialName("release_info") val releaseInfo: String? = null,
+    @SerialName("imdb_rating") val imdbRating: Float? = null,
+    val genres: List<String> = emptyList(),
+    @SerialName("added_at") val addedAt: Long = 0,
+)
+
 object LibraryRepository {
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val log = Logger.withTag("LibraryRepository")
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -40,6 +70,24 @@ object LibraryRepository {
         publish()
     }
 
+    suspend fun pullFromServer(profileId: Int) {
+        runCatching {
+            val params = buildJsonObject {
+                put("p_profile_id", profileId)
+                put("p_limit", 500)
+                put("p_offset", 0)
+            }
+            val result = SupabaseProvider.client.postgrest.rpc("sync_pull_library", params)
+            val serverItems = result.decodeList<LibrarySyncItem>()
+            itemsById = serverItems.map { it.toLibraryItem() }.associateBy { it.id }.toMutableMap()
+            hasLoaded = true
+            publish()
+            persist()
+        }.onFailure { e ->
+            log.e(e) { "Failed to pull library from server" }
+        }
+    }
+
     fun toggleSaved(item: LibraryItem) {
         ensureLoaded()
         if (itemsById.containsKey(item.id)) {
@@ -54,6 +102,7 @@ object LibraryRepository {
         itemsById[item.id] = item.copy(savedAtEpochMs = LibraryClock.nowEpochMs())
         publish()
         persist()
+        pushToServer()
     }
 
     fun remove(id: String) {
@@ -61,6 +110,7 @@ object LibraryRepository {
         if (itemsById.remove(id) != null) {
             publish()
             persist()
+            pushToServer()
         }
     }
 
@@ -72,6 +122,22 @@ object LibraryRepository {
     fun savedItem(id: String): LibraryItem? {
         ensureLoaded()
         return itemsById[id]
+    }
+
+    private fun pushToServer() {
+        syncScope.launch {
+            runCatching {
+                val profileId = ProfileRepository.activeProfileId
+                val syncItems = itemsById.values.map { it.toSyncItem() }
+                val params = buildJsonObject {
+                    put("p_profile_id", profileId)
+                    put("p_items", json.encodeToJsonElement(syncItems))
+                }
+                SupabaseProvider.client.postgrest.rpc("sync_push_library", params)
+            }.onFailure { e ->
+                log.e(e) { "Failed to push library to server" }
+            }
+        }
     }
 
     private fun publish() {
@@ -105,6 +171,32 @@ object LibraryRepository {
         )
     }
 }
+
+private fun LibrarySyncItem.toLibraryItem(): LibraryItem = LibraryItem(
+    id = contentId,
+    type = contentType,
+    name = name,
+    poster = poster,
+    banner = background,
+    description = description,
+    releaseInfo = releaseInfo,
+    imdbRating = imdbRating?.toString(),
+    genres = genres,
+    savedAtEpochMs = addedAt,
+)
+
+private fun LibraryItem.toSyncItem(): LibrarySyncItem = LibrarySyncItem(
+    contentId = id,
+    contentType = type,
+    name = name,
+    poster = poster,
+    background = banner,
+    description = description,
+    releaseInfo = releaseInfo,
+    imdbRating = imdbRating?.toFloatOrNull(),
+    genres = genres,
+    addedAt = savedAtEpochMs,
+)
 
 internal fun String.toLibraryDisplayTitle(): String {
     val normalized = trim()

@@ -1,5 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,6 +8,25 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
+}
+
+val supabaseProps = Properties().apply {
+    val propsFile = rootProject.file("local.properties")
+    if (propsFile.exists()) propsFile.inputStream().use { load(it) }
+}
+val generatedDir = layout.buildDirectory.dir("generated/supabase/kotlin").get().asFile
+generatedDir.resolve("com/nuvio/app/core/network").apply {
+    mkdirs()
+    resolve("SupabaseConfig.kt").writeText(
+        """
+        |package com.nuvio.app.core.network
+        |
+        |object SupabaseConfig {
+        |    const val URL = "${supabaseProps.getProperty("SUPABASE_URL", "")}"
+        |    const val ANON_KEY = "${supabaseProps.getProperty("SUPABASE_ANON_KEY", "")}"
+        |}
+        """.trimMargin()
+    )
 }
 
 kotlin {
@@ -27,6 +47,9 @@ kotlin {
     }
     
     sourceSets {
+        commonMain {
+            kotlin.srcDir(layout.buildDirectory.dir("generated/supabase/kotlin"))
+        }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
@@ -51,6 +74,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.kermit)
+            implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.auth)
+            implementation(libs.supabase.functions)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

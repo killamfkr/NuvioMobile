@@ -129,6 +129,8 @@ private fun MobileSettingsScreen(
                 onPlaybackClick = { onPageChange(SettingsPage.Playback) },
                 onAppearanceClick = { onPageChange(SettingsPage.Appearance) },
                 onContentDiscoveryClick = { onPageChange(SettingsPage.ContentDiscovery) },
+                onAccountClick = { onPageChange(SettingsPage.Account) },
+                onSyncOverviewClick = { onPageChange(SettingsPage.SyncOverview) },
             )
             SettingsPage.Playback -> playbackSettingsContent(
                 isTablet = false,
@@ -153,6 +155,12 @@ private fun MobileSettingsScreen(
                 isTablet = false,
                 heroEnabled = heroEnabled,
                 items = homescreenSettings,
+            )
+            SettingsPage.Account -> accountSettingsContent(
+                isTablet = false,
+            )
+            SettingsPage.SyncOverview -> syncOverviewContent(
+                isTablet = false,
             )
         }
     }
@@ -232,6 +240,8 @@ private fun TabletSettingsScreen(
                     onPlaybackClick = { onPageChange(SettingsPage.Playback) },
                     onAppearanceClick = { onPageChange(SettingsPage.Appearance) },
                     onContentDiscoveryClick = { onPageChange(SettingsPage.ContentDiscovery) },
+                    onAccountClick = { onPageChange(SettingsPage.Account) },
+                    onSyncOverviewClick = { onPageChange(SettingsPage.SyncOverview) },
                 )
                 SettingsPage.Playback -> playbackSettingsContent(
                     isTablet = true,
@@ -256,6 +266,12 @@ private fun TabletSettingsScreen(
                     isTablet = true,
                     heroEnabled = heroEnabled,
                     items = homescreenSettings,
+                )
+                SettingsPage.Account -> accountSettingsContent(
+                    isTablet = true,
+                )
+                SettingsPage.SyncOverview -> syncOverviewContent(
+                    isTablet = true,
                 )
             }
         }

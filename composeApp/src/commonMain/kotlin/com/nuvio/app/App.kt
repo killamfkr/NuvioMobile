@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -11,6 +12,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.VideoLibrary
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -25,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -39,9 +43,13 @@ import androidx.navigation.toRoute
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
+import com.nuvio.app.core.auth.AuthRepository
+import com.nuvio.app.core.auth.AuthState
+import com.nuvio.app.core.sync.SyncManager
 import com.nuvio.app.core.ui.nuvioBottomNavigationBarInsets
 import com.nuvio.app.core.ui.NuvioPosterActionSheet
 import com.nuvio.app.core.ui.NuvioTheme
+import com.nuvio.app.features.auth.AuthScreen
 import com.nuvio.app.features.catalog.CatalogRepository
 import com.nuvio.app.features.catalog.CatalogScreen
 import com.nuvio.app.features.details.MetaDetailsRepository
@@ -55,6 +63,10 @@ import com.nuvio.app.features.library.LibraryScreen
 import com.nuvio.app.features.library.toLibraryItem
 import com.nuvio.app.features.player.PlayerRoute
 import com.nuvio.app.features.player.PlayerScreen
+import com.nuvio.app.features.profiles.NuvioProfile
+import com.nuvio.app.features.profiles.ProfileEditScreen
+import com.nuvio.app.features.profiles.ProfileRepository
+import com.nuvio.app.features.profiles.ProfileSelectionScreen
 import com.nuvio.app.features.search.SearchScreen
 import com.nuvio.app.features.settings.SettingsScreen
 import com.nuvio.app.features.streams.StreamsRepository
@@ -106,6 +118,14 @@ enum class AppScreenTab {
     Settings,
 }
 
+private enum class AppGateScreen {
+    Loading,
+    Auth,
+    ProfileSelection,
+    ProfileEdit,
+    Main,
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
@@ -116,6 +136,84 @@ fun App() {
             .build()
     }
     NuvioTheme {
+        LaunchedEffect(Unit) {
+            AuthRepository.initialize()
+        }
+
+        val authState by AuthRepository.state.collectAsStateWithLifecycle()
+        var gateScreen by rememberSaveable { mutableStateOf(AppGateScreen.Loading.name) }
+        var editingProfile by remember { mutableStateOf<NuvioProfile?>(null) }
+        var isNewProfile by remember { mutableStateOf(false) }
+
+        LaunchedEffect(authState) {
+            when (authState) {
+                is AuthState.Loading -> gateScreen = AppGateScreen.Loading.name
+                is AuthState.Unauthenticated -> gateScreen = AppGateScreen.Auth.name
+                is AuthState.Authenticated -> {
+                    if (gateScreen == AppGateScreen.Loading.name || gateScreen == AppGateScreen.Auth.name) {
+                        gateScreen = AppGateScreen.ProfileSelection.name
+                    }
+                }
+            }
+        }
+
+        Crossfade(
+            targetState = gateScreen,
+            label = "app_gate",
+        ) { currentGate ->
+            when (currentGate) {
+                AppGateScreen.Loading.name -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                AppGateScreen.Auth.name -> {
+                    AuthScreen(modifier = Modifier.fillMaxSize())
+                }
+                AppGateScreen.ProfileSelection.name -> {
+                    ProfileSelectionScreen(
+                        onProfileSelected = { profile ->
+                            ProfileRepository.selectProfile(profile.profileIndex)
+                            SyncManager.pullAllForProfile(profile.profileIndex)
+                            gateScreen = AppGateScreen.Main.name
+                        },
+                        onEditProfile = { profile ->
+                            editingProfile = profile
+                            isNewProfile = false
+                            gateScreen = AppGateScreen.ProfileEdit.name
+                        },
+                        onAddProfile = {
+                            editingProfile = null
+                            isNewProfile = true
+                            gateScreen = AppGateScreen.ProfileEdit.name
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                AppGateScreen.ProfileEdit.name -> {
+                    ProfileEditScreen(
+                        profile = editingProfile,
+                        onBack = { gateScreen = AppGateScreen.ProfileSelection.name },
+                        onSaved = { gateScreen = AppGateScreen.ProfileSelection.name },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                AppGateScreen.Main.name -> {
+                    MainAppContent()
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainAppContent() {
         val navController = rememberNavController()
         val hapticFeedback = LocalHapticFeedback.current
         var selectedTab by rememberSaveable { mutableStateOf(AppScreenTab.Home) }
@@ -404,7 +502,6 @@ fun App() {
                 },
             )
         }
-    }
 }
 
 @Composable
