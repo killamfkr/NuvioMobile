@@ -3,6 +3,7 @@ package com.nuvio.app.features.details
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
@@ -14,6 +15,7 @@ internal object MetaDetailsParser {
     fun parse(payload: String): MetaDetails {
         val root = json.parseToJsonElement(payload).jsonObject
         val meta = root["meta"]?.jsonObject ?: error("Missing 'meta' in response")
+        val links = meta.links()
 
         return MetaDetails(
             id = meta.requiredString("id"),
@@ -27,13 +29,13 @@ internal object MetaDetailsParser {
             imdbRating = meta.string("imdbRating"),
             runtime = meta.string("runtime"),
             genres = meta.stringList("genres"),
-            director = meta.stringList("director"),
-            cast = meta.stringList("cast"),
+            director = meta.directors(links),
+            cast = meta.cast(links),
             country = meta.string("country"),
             awards = meta.string("awards"),
             language = meta.string("language"),
             website = meta.string("website"),
-            links = meta.links(),
+            links = links,
             videos = meta.videos(),
         )
     }
@@ -50,6 +52,19 @@ internal object MetaDetailsParser {
     private fun JsonObject.stringList(name: String): List<String> =
         array(name).mapNotNull { it.jsonPrimitive.contentOrNull?.takeIf(String::isNotBlank) }
 
+    private fun JsonObject.stringListOrCsv(name: String): List<String> {
+        val value = this[name] ?: return emptyList()
+        return when (value) {
+            is JsonArray -> value.mapNotNull { it.jsonPrimitive.contentOrNull?.takeIf(String::isNotBlank) }
+            is JsonPrimitive -> value.contentOrNull
+                ?.split(',')
+                ?.map(String::trim)
+                ?.filter(String::isNotBlank)
+                .orEmpty()
+            else -> emptyList()
+        }
+    }
+
     private fun JsonObject.links(): List<MetaLink> =
         array("links").mapNotNull { element ->
             val link = element as? JsonObject ?: return@mapNotNull null
@@ -61,6 +76,94 @@ internal object MetaDetailsParser {
 
     private fun JsonObject.int(name: String): Int? =
         this[name]?.jsonPrimitive?.intOrNull
+
+    private fun JsonObject.directors(links: List<MetaLink>): List<String> {
+        val appExtras = this["app_extras"] as? JsonObject
+        val topLevel = stringListOrCsv("director")
+        val extraDirectors = appExtras.personNameList("directors")
+        val linkDirectors = links.filter { link ->
+            link.category.equals("director", ignoreCase = true) ||
+                link.category.equals("directors", ignoreCase = true)
+        }.map(MetaLink::name)
+
+        return (topLevel + extraDirectors + linkDirectors)
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+    }
+
+    private fun JsonObject.cast(links: List<MetaLink>): List<MetaPerson> {
+        val appExtras = this["app_extras"] as? JsonObject
+        val appExtraCast = appExtras.people("cast")
+        val topLevelCast = stringListOrCsv("cast").map { name ->
+            MetaPerson(name = name)
+        }
+        val linkedCast = links.filter { link ->
+            link.category.equals("cast", ignoreCase = true) ||
+                link.category.equals("actor", ignoreCase = true) ||
+                link.category.equals("actors", ignoreCase = true)
+        }.map { link ->
+            MetaPerson(name = link.name)
+        }
+
+        return mergePeople(appExtraCast, topLevelCast, linkedCast)
+    }
+
+    private fun JsonObject?.personNameList(name: String): List<String> =
+        people(name).map(MetaPerson::name)
+
+    private fun JsonObject?.people(name: String): List<MetaPerson> {
+        if (this == null) return emptyList()
+        return when (val value = this[name]) {
+            is JsonArray -> value.mapNotNull { element ->
+                when (element) {
+                    is JsonObject -> {
+                        val personName = element.string("name")?.trim()
+                            ?.takeIf(String::isNotBlank)
+                            ?: return@mapNotNull null
+                        MetaPerson(
+                            name = personName,
+                            role = element.string("character")?.trim()?.takeIf(String::isNotBlank),
+                            photo = element.string("photo")?.trim()?.takeIf(String::isNotBlank),
+                        )
+                    }
+                    is JsonPrimitive -> element.contentOrNull
+                        ?.trim()
+                        ?.takeIf(String::isNotBlank)
+                        ?.let(::MetaPerson)
+                    else -> null
+                }
+            }
+            is JsonPrimitive -> value.contentOrNull
+                ?.split(',')
+                ?.map(String::trim)
+                ?.filter(String::isNotBlank)
+                ?.map(::MetaPerson)
+                .orEmpty()
+            else -> emptyList()
+        }
+    }
+
+    private fun mergePeople(vararg groups: List<MetaPerson>): List<MetaPerson> {
+        val merged = linkedMapOf<String, MetaPerson>()
+        groups.forEach { group ->
+            group.forEach { person ->
+                val normalizedName = person.name.trim()
+                if (normalizedName.isBlank()) return@forEach
+                val key = normalizedName.lowercase()
+                val existing = merged[key]
+                merged[key] = if (existing == null) {
+                    person.copy(name = normalizedName)
+                } else {
+                    existing.copy(
+                        role = existing.role ?: person.role,
+                        photo = existing.photo ?: person.photo,
+                    )
+                }
+            }
+        }
+        return merged.values.toList()
+    }
 
     private fun JsonObject.videos(): List<MetaVideo> =
         array("videos").mapNotNull { element ->

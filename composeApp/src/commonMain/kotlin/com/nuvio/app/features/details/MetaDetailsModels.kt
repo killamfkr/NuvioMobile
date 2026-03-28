@@ -13,13 +13,19 @@ data class MetaDetails(
     val runtime: String? = null,
     val genres: List<String> = emptyList(),
     val director: List<String> = emptyList(),
-    val cast: List<String> = emptyList(),
+    val cast: List<MetaPerson> = emptyList(),
     val country: String? = null,
     val awards: String? = null,
     val language: String? = null,
     val website: String? = null,
     val links: List<MetaLink> = emptyList(),
     val videos: List<MetaVideo> = emptyList(),
+)
+
+data class MetaPerson(
+    val name: String,
+    val role: String? = null,
+    val photo: String? = null,
 )
 
 data class MetaLink(

@@ -10,21 +10,25 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import com.nuvio.app.features.details.MetaPerson
 
 @Composable
 fun DetailCastSection(
-    cast: List<String>,
+    cast: List<MetaPerson>,
     modifier: Modifier = Modifier,
 ) {
     if (cast.isEmpty()) return
@@ -39,9 +43,12 @@ fun DetailCastSection(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(sizing.avatarGap),
             ) {
-                items(cast) { name ->
+                items(
+                    items = cast,
+                    key = { it.name },
+                ) { person ->
                     CastItem(
-                        name = name,
+                        person = person,
                         sizing = sizing,
                     )
                 }
@@ -52,9 +59,8 @@ fun DetailCastSection(
 
 @Composable
 private fun CastItem(
-    name: String,
+    person: MetaPerson,
     modifier: Modifier = Modifier,
-    subLabel: String? = null,
     sizing: CastSectionSizing,
 ) {
     Column(
@@ -65,21 +71,31 @@ private fun CastItem(
         Box(
             modifier = Modifier
                 .size(sizing.avatarSize)
+                .clip(CircleShape)
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = name.initials(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-            )
+            if (person.photo != null) {
+                AsyncImage(
+                    model = person.photo,
+                    contentDescription = person.name,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Text(
+                    text = person.name.initials(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
         Text(
-            text = name,
+            text = person.name,
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = sizing.nameLabelSize,
             ),
@@ -88,9 +104,9 @@ private fun CastItem(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        if (!subLabel.isNullOrBlank()) {
+        if (!person.role.isNullOrBlank()) {
             Text(
-                text = subLabel,
+                text = person.role,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = sizing.subLabelSize,
                 ),
