@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
+import androidx.core.view.WindowCompat
 import com.nuvio.app.features.addons.AddonStorage
 import com.nuvio.app.features.library.LibraryStorage
 import com.nuvio.app.features.home.HomeCatalogSettingsStorage
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
         window.setBackgroundDrawableResource(R.color.nuvio_background)
         window.navigationBarColor = getColor(R.color.nuvio_background)
         window.isNavigationBarContrastEnforced = false
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
         AddonStorage.initialize(applicationContext)
         LibraryStorage.initialize(applicationContext)
         WatchedStorage.initialize(applicationContext)
