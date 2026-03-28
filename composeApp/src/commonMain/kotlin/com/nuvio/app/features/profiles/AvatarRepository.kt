@@ -18,6 +18,14 @@ object AvatarRepository {
 
     suspend fun fetchAvatars() {
         if (loaded && _avatars.value.isNotEmpty()) return
+        doFetch()
+    }
+
+    suspend fun refreshAvatars() {
+        doFetch()
+    }
+
+    private suspend fun doFetch() {
         runCatching {
             val result = SupabaseProvider.client.postgrest.rpc("get_avatar_catalog")
             val items = result.decodeList<AvatarCatalogItem>()

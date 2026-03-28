@@ -1,21 +1,27 @@
 package com.nuvio.app.features.profiles
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,7 +32,6 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,17 +44,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileSelectionScreen(
     onProfileSelected: (NuvioProfile) -> Unit,
@@ -62,9 +70,21 @@ fun ProfileSelectionScreen(
     var pinDialogProfile by remember { mutableStateOf<NuvioProfile?>(null) }
     var isEditMode by remember { mutableStateOf(false) }
 
+    val titleAlpha = remember { Animatable(0f) }
+    val titleOffset = remember { Animatable(20f) }
+    val manageAlpha = remember { Animatable(0f) }
+
     LaunchedEffect(Unit) {
         ProfileRepository.pullProfiles()
         AvatarRepository.fetchAvatars()
+        AvatarRepository.refreshAvatars()
+    }
+
+    LaunchedEffect(Unit) {
+        launch { titleAlpha.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
+        launch { titleOffset.animateTo(0f, tween(600, easing = FastOutSlowInEasing)) }
+        delay(300)
+        manageAlpha.animateTo(1f, tween(500))
     }
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -72,63 +92,120 @@ fun ProfileSelectionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                    ),
+                ),
+            )
             .padding(top = statusBarTop),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 32.dp, vertical = 48.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(modifier = Modifier.height(60.dp))
+
             Text(
                 text = "Who's watching?",
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 30.sp,
+                    letterSpacing = (-0.5).sp,
+                ),
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.graphicsLayer {
+                    alpha = titleAlpha.value
+                    translationY = titleOffset.value
+                },
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+            val profiles = profileState.profiles
+            val items = profiles.size + if (profiles.size < 4) 1 else 0
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                profileState.profiles.forEach { profile ->
-                    ProfileAvatar(
-                        profile = profile,
-                        isEditMode = isEditMode,
-                        onClick = {
-                            if (isEditMode) {
-                                onEditProfile(profile)
-                            } else if (profile.pinEnabled) {
-                                pinDialogProfile = profile
+                var index = 0
+                while (index < items) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        for (col in 0..1) {
+                            if (index < items) {
+                                val currentIndex = index
+                                if (currentIndex < profiles.size) {
+                                    val profile = profiles[currentIndex]
+                                    ProfileAvatarCard(
+                                        profile = profile,
+                                        isEditMode = isEditMode,
+                                        animDelay = currentIndex * 80,
+                                        onClick = {
+                                            if (isEditMode) {
+                                                onEditProfile(profile)
+                                            } else if (profile.pinEnabled) {
+                                                pinDialogProfile = profile
+                                            } else {
+                                                ProfileRepository.selectProfile(profile.profileIndex)
+                                                onProfileSelected(profile)
+                                            }
+                                        },
+                                    )
+                                } else {
+                                    AddProfileCard(
+                                        animDelay = currentIndex * 80,
+                                        onClick = onAddProfile,
+                                    )
+                                }
+                                index++
                             } else {
-                                ProfileRepository.selectProfile(profile.profileIndex)
-                                onProfileSelected(profile)
+                                Spacer(modifier = Modifier.width(150.dp))
                             }
-                        },
-                    )
-                }
-
-                if (profileState.profiles.size < 4) {
-                    AddProfileButton(onClick = onAddProfile)
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            Text(
-                text = if (isEditMode) "Done" else "Manage Profiles",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium,
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .graphicsLayer { alpha = manageAlpha.value }
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        if (isEditMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else Color.Transparent,
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isEditMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(24.dp),
+                    )
                     .clickable { isEditMode = !isEditMode }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+                    .padding(horizontal = 24.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = if (isEditMode) "Done" else "Manage Profiles",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isEditMode) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 
@@ -150,9 +227,10 @@ fun ProfileSelectionScreen(
 }
 
 @Composable
-private fun ProfileAvatar(
+private fun ProfileAvatarCard(
     profile: NuvioProfile,
     isEditMode: Boolean,
+    animDelay: Int,
     onClick: () -> Unit,
 ) {
     val avatarColor = remember(profile.avatarColorHex) {
@@ -163,32 +241,67 @@ private fun ProfileAvatar(
         profile.avatarId?.let { id -> avatars.find { it.id == id } }
     }
 
+    val animAlpha = remember { Animatable(0f) }
+    val animScale = remember { Animatable(0.85f) }
+    val animOffset = remember { Animatable(30f) }
+
+    LaunchedEffect(Unit) {
+        delay(animDelay.toLong() + 150)
+        launch { animAlpha.animateTo(1f, tween(450, easing = FastOutSlowInEasing)) }
+        launch { animScale.animateTo(1f, tween(500, easing = FastOutSlowInEasing)) }
+        launch { animOffset.animateTo(0f, tween(500, easing = FastOutSlowInEasing)) }
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale = if (isPressed) 0.95f else 1f
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .width(150.dp)
+            .graphicsLayer {
+                alpha = animAlpha.value
+                scaleX = animScale.value * pressScale
+                scaleY = animScale.value * pressScale
+                translationY = animOffset.value
+            }
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .padding(8.dp),
     ) {
         Box(
-            modifier = Modifier.size(96.dp),
+            modifier = Modifier.size(110.dp),
             contentAlignment = Alignment.Center,
         ) {
+            if (avatarItem != null) {
+                val bgColor = avatarItem.bgColor?.let { parseHexColor(it) } ?: avatarColor
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                        .background(bgColor.copy(alpha = 0.2f)),
+                )
+            }
+
             Box(
                 modifier = Modifier
-                    .size(96.dp)
+                    .size(100.dp)
                     .clip(CircleShape)
                     .background(
                         if (avatarItem != null) {
                             avatarItem.bgColor?.let { parseHexColor(it) } ?: avatarColor
                         } else {
-                            avatarColor.copy(alpha = 0.2f)
-                        }
+                            avatarColor.copy(alpha = 0.15f)
+                        },
                     )
-                    .border(
-                        2.dp,
-                        if (avatarItem != null) Color.Transparent else avatarColor.copy(alpha = 0.5f),
-                        CircleShape,
+                    .then(
+                        if (avatarItem == null) Modifier.border(2.dp, avatarColor.copy(alpha = 0.4f), CircleShape)
+                        else Modifier,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -196,13 +309,13 @@ private fun ProfileAvatar(
                     AsyncImage(
                         model = avatarStorageUrl(avatarItem.storagePath),
                         contentDescription = avatarItem.displayName,
-                        modifier = Modifier.size(96.dp).clip(CircleShape),
+                        modifier = Modifier.size(100.dp).clip(CircleShape),
                         contentScale = ContentScale.Crop,
                     )
                 } else if (profile.name.isNotBlank()) {
                     Text(
                         text = profile.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineLarge.copy(fontSize = 38.sp),
                         color = avatarColor,
                         fontWeight = FontWeight.Bold,
                     )
@@ -211,7 +324,7 @@ private fun ProfileAvatar(
                         imageVector = Icons.Rounded.Person,
                         contentDescription = null,
                         tint = avatarColor,
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(46.dp),
                     )
                 }
             }
@@ -220,9 +333,10 @@ private fun ProfileAvatar(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(32.dp)
+                        .size(34.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background(MaterialTheme.colorScheme.primary)
+                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -238,9 +352,10 @@ private fun ProfileAvatar(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(28.dp)
+                        .size(30.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -253,13 +368,13 @@ private fun ProfileAvatar(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = profile.name.ifBlank { "Profile ${profile.profileIndex}" },
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -268,37 +383,75 @@ private fun ProfileAvatar(
 }
 
 @Composable
-private fun AddProfileButton(onClick: () -> Unit) {
+private fun AddProfileCard(
+    animDelay: Int,
+    onClick: () -> Unit,
+) {
+    val animAlpha = remember { Animatable(0f) }
+    val animScale = remember { Animatable(0.85f) }
+    val animOffset = remember { Animatable(30f) }
+
+    LaunchedEffect(Unit) {
+        delay(animDelay.toLong() + 150)
+        launch { animAlpha.animateTo(1f, tween(450, easing = FastOutSlowInEasing)) }
+        launch { animScale.animateTo(1f, tween(500, easing = FastOutSlowInEasing)) }
+        launch { animOffset.animateTo(0f, tween(500, easing = FastOutSlowInEasing)) }
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale = if (isPressed) 0.95f else 1f
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .width(150.dp)
+            .graphicsLayer {
+                alpha = animAlpha.value
+                scaleX = animScale.value * pressScale
+                scaleY = animScale.value * pressScale
+                translationY = animOffset.value
+            }
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .padding(8.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(96.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            modifier = Modifier.size(110.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(36.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .border(
+                        2.dp,
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(40.dp),
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = "Add Profile",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
     }

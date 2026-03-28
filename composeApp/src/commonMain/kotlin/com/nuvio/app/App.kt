@@ -1,6 +1,11 @@
 package com.nuvio.app
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -42,6 +47,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
+import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.nuvio.app.core.auth.AuthRepository
 import com.nuvio.app.core.auth.AuthState
@@ -133,6 +139,8 @@ fun App() {
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
             .crossfade(true)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
             .build()
     }
     NuvioTheme {
@@ -157,9 +165,13 @@ fun App() {
             }
         }
 
-        Crossfade(
+        AnimatedContent(
             targetState = gateScreen,
             label = "app_gate",
+            transitionSpec = {
+                (fadeIn(tween(400)) + scaleIn(tween(400), initialScale = 0.94f))
+                    .togetherWith(fadeOut(tween(250)))
+            },
         ) { currentGate ->
             when (currentGate) {
                 AppGateScreen.Loading.name -> {
