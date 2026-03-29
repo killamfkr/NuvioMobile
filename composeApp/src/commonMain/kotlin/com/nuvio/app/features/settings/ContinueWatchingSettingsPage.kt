@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nuvio.app.features.home.components.ContinueWatchingStylePreview
@@ -113,21 +114,27 @@ private fun ContinueWatchingStyleOption(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
                 horizontalArrangement = Arrangement.End,
             ) {
-                if (selected) {
-                    Icon(
-                        imageVector = Icons.Rounded.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alpha(if (selected) 1f else 0f),
+                )
             }
-            ContinueWatchingStylePreview(
-                style = style,
-                isSelected = selected,
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                ContinueWatchingStylePreview(
+                    style = style,
+                    isSelected = selected,
+                )
+            }
             Text(
                 text = style.name.lowercase().replaceFirstChar(Char::uppercase),
                 style = MaterialTheme.typography.bodyMedium,
