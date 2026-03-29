@@ -12,24 +12,37 @@ internal object HomeCatalogParser {
         ignoreUnknownKeys = true
     }
 
-    fun parseCatalog(payload: String): List<MetaPreview> {
-        return parseCatalogResponse(payload).items
+    fun parseCatalog(
+        payload: String,
+        maxItems: Int? = null,
+    ): List<MetaPreview> {
+        return parseCatalogResponse(
+            payload = payload,
+            maxItems = maxItems,
+        ).items
     }
 
-    fun parseCatalogResponse(payload: String): ParsedCatalogResponse {
+    fun parseCatalogResponse(
+        payload: String,
+        maxItems: Int? = null,
+    ): ParsedCatalogResponse {
         val root = json.parseToJsonElement(payload).jsonObject
-        val parsedItems = root.array("metas")
-            .mapNotNull { element ->
-                val meta = element as? JsonObject ?: return@mapNotNull null
+        val metas = root.array("metas")
+        val parsedItems = buildList {
+            val seenKeys = mutableSetOf<String>()
+            metas.forEach { element ->
+                if (maxItems != null && size >= maxItems) return@forEach
+
+                val meta = element as? JsonObject ?: return@forEach
                 val id = meta.string("id")
                 val type = meta.string("type")
                 val name = meta.string("name")
 
                 if (id.isNullOrBlank() || type.isNullOrBlank() || name.isNullOrBlank()) {
-                    return@mapNotNull null
+                    return@forEach
                 }
 
-                MetaPreview(
+                val item = MetaPreview(
                     id = id,
                     type = type,
                     name = name,
@@ -44,10 +57,14 @@ internal object HomeCatalogParser {
                         genre.jsonPrimitive.contentOrNull?.takeIf { it.isNotBlank() }
                     },
                 )
+                if (seenKeys.add(item.stableKey())) {
+                    add(item)
+                }
             }
+        }
         return ParsedCatalogResponse(
-            items = parsedItems.distinctBy { it.stableKey() },
-            rawItemCount = root.array("metas").size,
+            items = parsedItems,
+            rawItemCount = metas.size,
         )
     }
 

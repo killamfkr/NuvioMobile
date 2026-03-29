@@ -10,6 +10,7 @@ const val CATALOG_PAGE_SIZE = 100
 
 data class CatalogPage(
     val items: List<MetaPreview>,
+    val rawItemCount: Int,
     val nextSkip: Int?,
 )
 
@@ -20,6 +21,7 @@ suspend fun fetchCatalogPage(
     genre: String? = null,
     search: String? = null,
     skip: Int? = null,
+    maxItems: Int? = null,
 ): CatalogPage {
     val payload = httpGetText(
         buildCatalogUrl(
@@ -31,7 +33,10 @@ suspend fun fetchCatalogPage(
             skip = skip,
         ),
     )
-    val parsed = HomeCatalogParser.parseCatalogResponse(payload)
+    val parsed = HomeCatalogParser.parseCatalogResponse(
+        payload = payload,
+        maxItems = maxItems,
+    )
     val nextSkip = if (parsed.rawItemCount >= CATALOG_PAGE_SIZE) {
         (skip ?: 0) + CATALOG_PAGE_SIZE
     } else {
@@ -39,6 +44,7 @@ suspend fun fetchCatalogPage(
     }
     return CatalogPage(
         items = parsed.items,
+        rawItemCount = parsed.rawItemCount,
         nextSkip = nextSkip,
     )
 }

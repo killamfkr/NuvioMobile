@@ -34,11 +34,12 @@ data class HomeCatalogSection(
     val manifestUrl: String,
     val catalogId: String,
     val items: List<MetaPreview>,
+    val availableItemCount: Int = items.size,
     val supportsPagination: Boolean = false,
 )
 
 fun HomeCatalogSection.canOpenCatalog(previewLimit: Int): Boolean =
-    items.size > previewLimit || (supportsPagination && items.size >= CATALOG_PAGE_SIZE)
+    availableItemCount > previewLimit || (supportsPagination && availableItemCount >= CATALOG_PAGE_SIZE)
 
 data class HomeUiState(
     val isLoading: Boolean = false,

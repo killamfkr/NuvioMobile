@@ -26,4 +26,27 @@ class HomeCatalogParserTest {
         )
         assertEquals("A", result.items.first().name)
     }
+
+    @Test
+    fun `parse catalog response respects max item cap without losing raw count`() {
+        val result = HomeCatalogParser.parseCatalogResponse(
+            payload = """
+                {
+                  "metas": [
+                    { "id": "tt1", "type": "movie", "name": "One" },
+                    { "id": "tt1", "type": "movie", "name": "One duplicate" },
+                    { "id": "tt2", "type": "movie", "name": "Two" },
+                    { "id": "tt3", "type": "movie", "name": "Three" }
+                  ]
+                }
+            """.trimIndent(),
+            maxItems = 2,
+        )
+
+        assertEquals(4, result.rawItemCount)
+        assertEquals(
+            listOf("movie:tt1", "movie:tt2"),
+            result.items.map { it.stableKey() },
+        )
+    }
 }

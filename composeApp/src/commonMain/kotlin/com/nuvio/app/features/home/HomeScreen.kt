@@ -130,12 +130,10 @@ fun HomeScreen(
 
     val hasActiveAddons = addonsUiState.addons.any { it.manifest != null }
     val showHeroSlot = homeSettingsUiState.heroEnabled
-    val homeDataResolved = !homeUiState.isLoading &&
-        (homeUiState.sections.isNotEmpty() || homeUiState.errorMessage != null)
+    val isResolvingHeroSources = addonsUiState.addons.any { it.isRefreshing } || homeUiState.isLoading
     val showHeroSkeleton = showHeroSlot &&
-        hasActiveAddons &&
         homeUiState.heroItems.isEmpty() &&
-        !homeDataResolved
+        isResolvingHeroSources
 
     NuvioScreen(
         modifier = modifier,
@@ -146,16 +144,16 @@ fun HomeScreen(
             item {
                 when {
                     showHeroSkeleton -> HomeSkeletonHero(
-                        modifier = Modifier.padding(bottom = 12.dp),
+                        modifier = Modifier,
                     )
 
                     homeUiState.heroItems.isNotEmpty() -> HomeHeroSection(
                         items = homeUiState.heroItems,
-                        modifier = Modifier.padding(bottom = 0.dp),
+                        modifier = Modifier,
                         onItemClick = onPosterClick,
                     )
 
-                    else -> HomeHeroReservedSpace()
+                    else -> HomeHeroReservedSpace(modifier = Modifier)
                 }
             }
         }

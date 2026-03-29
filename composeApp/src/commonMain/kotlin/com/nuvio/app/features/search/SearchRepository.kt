@@ -294,6 +294,7 @@ object SearchRepository {
             manifestUrl = manifest.transportUrl,
             catalogId = catalogId,
             items = items,
+            availableItemCount = page.rawItemCount,
             supportsPagination = supportsPagination,
         )
     }

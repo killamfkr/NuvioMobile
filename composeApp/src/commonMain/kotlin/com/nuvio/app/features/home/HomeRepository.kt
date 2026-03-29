@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 import kotlin.random.Random
 
 object HomeRepository {
@@ -64,27 +65,59 @@ object HomeRepository {
         activeJob?.cancel()
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         activeJob = scope.launch {
-            val results = mutableListOf<Result<HomeCatalogSection>>()
-            requests.chunked(HOME_CATALOG_FETCH_BATCH_SIZE).forEach { batch ->
+            val prioritizedRequests = prioritizeDefinitions(
+                definitions = requests,
+                snapshot = HomeCatalogSettingsRepository.snapshot(),
+            )
+            val loadedSections = linkedMapOf<String, HomeCatalogSection>()
+            var firstErrorMessage: String? = null
+
+            prioritizedRequests.chunked(HOME_CATALOG_FETCH_BATCH_SIZE).forEach { batch ->
                 if (activeRequestKey != requestKey) return@launch
-                results += batch.map { request ->
+                val results = batch.map { request ->
                     async {
                         runCatching { request.toSection() }
                     }
                 }.awaitAll()
+
+                if (activeRequestKey != requestKey) return@launch
+
+                results.mapNotNull { it.getOrNull() }.forEach { section ->
+                    loadedSections[section.key] = section
+                }
+                if (firstErrorMessage == null) {
+                    firstErrorMessage = results.firstNotNullOfOrNull { it.exceptionOrNull()?.message }
+                }
+                cachedSections = loadedSections.toMap()
+                lastErrorMessage = firstErrorMessage
+                publishCurrentState(
+                    isLoading = true,
+                    requestKey = requestKey,
+                )
             }
 
             if (activeRequestKey != requestKey) return@launch
 
-            cachedSections = results
-                .mapNotNull { it.getOrNull() }
-                .associateBy { it.key }
-            lastErrorMessage = results.firstNotNullOfOrNull { it.exceptionOrNull()?.message }
-            applyCurrentSettings()
+            cachedSections = loadedSections.toMap()
+            lastErrorMessage = firstErrorMessage
+            publishCurrentState(
+                isLoading = false,
+                requestKey = requestKey,
+            )
         }
     }
 
     fun applyCurrentSettings() {
+        publishCurrentState(
+            isLoading = _uiState.value.isLoading,
+            requestKey = activeRequestKey ?: lastRequestKey,
+        )
+    }
+
+    private fun publishCurrentState(
+        isLoading: Boolean,
+        requestKey: String?,
+    ) {
         val snapshot = HomeCatalogSettingsRepository.snapshot()
         val preferences = snapshot.preferences
         val sections = currentDefinitions
@@ -101,19 +134,20 @@ object HomeRepository {
             }
 
         val heroItems = if (snapshot.heroEnabled) {
+            val heroRandom = Random((requestKey?.hashCode() ?: 0).absoluteValue + 1)
             currentDefinitions
                 .filter { definition -> preferences[definition.key]?.heroSourceEnabled != false }
                 .mapNotNull { definition -> cachedSections[definition.key] }
                 .flatMap { section -> section.items }
                 .distinctBy { item -> "${item.type}:${item.id}" }
-                .shuffled(Random.Default)
+                .shuffled(heroRandom)
                 .take(HOME_HERO_ITEM_LIMIT)
         } else {
             emptyList()
         }
 
         _uiState.value = HomeUiState(
-            isLoading = false,
+            isLoading = isLoading,
             heroItems = heroItems,
             sections = sections,
             errorMessage = if (sections.isEmpty()) lastErrorMessage else null,
@@ -125,6 +159,7 @@ object HomeRepository {
             manifestUrl = manifestUrl,
             type = type,
             catalogId = catalogId,
+            maxItems = HOME_CATALOG_PREVIEW_FETCH_LIMIT,
         )
         val items = page.items
         require(items.isNotEmpty()) { "No feed items returned for $defaultTitle." }
@@ -138,10 +173,30 @@ object HomeRepository {
             manifestUrl = manifestUrl,
             catalogId = catalogId,
             items = items,
+            availableItemCount = page.rawItemCount,
             supportsPagination = supportsPagination,
         )
     }
 }
 
 private const val HOME_HERO_ITEM_LIMIT = 8
-private const val HOME_CATALOG_FETCH_BATCH_SIZE = 4
+private const val HOME_CATALOG_FETCH_BATCH_SIZE = 2
+private const val HOME_CATALOG_PREVIEW_FETCH_LIMIT = 18
+
+private fun prioritizeDefinitions(
+    definitions: List<HomeCatalogDefinition>,
+    snapshot: HomeCatalogSettingsSnapshot,
+): List<HomeCatalogDefinition> {
+    val orderedDefinitions = definitions.sortedBy { definition ->
+        snapshot.preferences[definition.key]?.order ?: Int.MAX_VALUE
+    }
+    val (priority, remainder) = orderedDefinitions.partition { definition ->
+        val preference = snapshot.preferences[definition.key]
+        if (preference == null) {
+            true
+        } else {
+            preference.enabled || (snapshot.heroEnabled && preference.heroSourceEnabled)
+        }
+    }
+    return priority + remainder
+}
