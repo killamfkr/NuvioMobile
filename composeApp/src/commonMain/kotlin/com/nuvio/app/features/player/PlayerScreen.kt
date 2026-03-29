@@ -312,6 +312,28 @@ fun PlayerScreen(
             }
         }
 
+        LaunchedEffect(
+            playerController,
+            playbackSnapshot.isLoading,
+            preferredAudioSelectionApplied,
+            preferredSubtitleSelectionApplied,
+        ) {
+            if (playerController == null || playbackSnapshot.isLoading) {
+                return@LaunchedEffect
+            }
+            if (preferredAudioSelectionApplied && preferredSubtitleSelectionApplied) {
+                return@LaunchedEffect
+            }
+
+            repeat(10) {
+                refreshTracks()
+                if (preferredAudioSelectionApplied && preferredSubtitleSelectionApplied) {
+                    return@LaunchedEffect
+                }
+                delay(300)
+            }
+        }
+
         LaunchedEffect(playerController, playbackSnapshot.isLoading, initialPositionMs, initialSeekApplied) {
             val controller = playerController ?: return@LaunchedEffect
             if (initialSeekApplied || playbackSnapshot.isLoading || initialPositionMs <= 0L) {

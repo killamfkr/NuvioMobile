@@ -104,10 +104,25 @@ actual fun PlatformPlayerSurface(
                 }
 
                 override fun selectAudioTrack(index: Int) {
-                    // Convert from list index to mpv track id
+                    // Convert from logical track index to mpv track id
                     val count = bridge.getAudioTrackCount()
-                    if (index in 0 until count) {
-                        val trackId = bridge.getAudioTrackId(index).toIntOrNull() ?: (index + 1)
+                    if (count <= 0) return
+
+                    val trackId = (0 until count)
+                        .firstNotNullOfOrNull { at ->
+                            if (bridge.getAudioTrackIndex(at) == index) {
+                                bridge.getAudioTrackId(at).toIntOrNull()
+                            } else {
+                                null
+                            }
+                        }
+                        ?: if (index in 0 until count) {
+                            bridge.getAudioTrackId(index).toIntOrNull() ?: (index + 1)
+                        } else {
+                            null
+                        }
+
+                    if (trackId != null) {
                         bridge.selectAudioTrack(trackId)
                     }
                 }
@@ -117,8 +132,23 @@ actual fun PlatformPlayerSurface(
                         bridge.selectSubtitleTrack(-1) // disable
                     } else {
                         val count = bridge.getSubtitleTrackCount()
-                        if (index in 0 until count) {
-                            val trackId = bridge.getSubtitleTrackId(index).toIntOrNull() ?: (index + 1)
+                        if (count <= 0) return
+
+                        val trackId = (0 until count)
+                            .firstNotNullOfOrNull { at ->
+                                if (bridge.getSubtitleTrackIndex(at) == index) {
+                                    bridge.getSubtitleTrackId(at).toIntOrNull()
+                                } else {
+                                    null
+                                }
+                            }
+                            ?: if (index in 0 until count) {
+                                bridge.getSubtitleTrackId(index).toIntOrNull() ?: (index + 1)
+                            } else {
+                                null
+                            }
+
+                        if (trackId != null) {
                             bridge.selectSubtitleTrack(trackId)
                         }
                     }
@@ -134,11 +164,27 @@ actual fun PlatformPlayerSurface(
                 }
 
                 override fun clearExternalSubtitleAndSelect(trackIndex: Int) {
-                    val trackId = if (trackIndex < 0) -1 else {
+                    val trackId = if (trackIndex < 0) {
+                        -1
+                    } else {
                         val count = bridge.getSubtitleTrackCount()
-                        if (trackIndex in 0 until count) {
-                            bridge.getSubtitleTrackId(trackIndex).toIntOrNull() ?: (trackIndex + 1)
-                        } else trackIndex + 1
+                        if (count <= 0) {
+                            trackIndex + 1
+                        } else {
+                            (0 until count)
+                                .firstNotNullOfOrNull { at ->
+                                    if (bridge.getSubtitleTrackIndex(at) == trackIndex) {
+                                        bridge.getSubtitleTrackId(at).toIntOrNull()
+                                    } else {
+                                        null
+                                    }
+                                }
+                                ?: if (trackIndex in 0 until count) {
+                                    bridge.getSubtitleTrackId(trackIndex).toIntOrNull() ?: (trackIndex + 1)
+                                } else {
+                                    trackIndex + 1
+                                }
+                        }
                     }
                     bridge.clearExternalSubtitleAndSelect(trackId)
                 }
