@@ -1,0 +1,47 @@
+package com.nuvio.app.features.settings
+
+import com.nuvio.app.core.ui.AppTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+object ThemeSettingsRepository {
+    private val _selectedTheme = MutableStateFlow(AppTheme.WHITE)
+    val selectedTheme: StateFlow<AppTheme> = _selectedTheme.asStateFlow()
+
+    private val _amoledEnabled = MutableStateFlow(false)
+    val amoledEnabled: StateFlow<Boolean> = _amoledEnabled.asStateFlow()
+
+    private var hasLoaded = false
+
+    fun ensureLoaded() {
+        if (hasLoaded) return
+        hasLoaded = true
+        val stored = ThemeSettingsStorage.loadSelectedTheme()
+        val theme = if (stored != null) {
+            try {
+                AppTheme.valueOf(stored)
+            } catch (_: IllegalArgumentException) {
+                AppTheme.WHITE
+            }
+        } else {
+            AppTheme.WHITE
+        }
+        _selectedTheme.value = theme
+        _amoledEnabled.value = ThemeSettingsStorage.loadAmoledEnabled() ?: false
+    }
+
+    fun setTheme(theme: AppTheme) {
+        ensureLoaded()
+        if (_selectedTheme.value == theme) return
+        _selectedTheme.value = theme
+        ThemeSettingsStorage.saveSelectedTheme(theme.name)
+    }
+
+    fun setAmoled(enabled: Boolean) {
+        ensureLoaded()
+        if (_amoledEnabled.value == enabled) return
+        _amoledEnabled.value = enabled
+        ThemeSettingsStorage.saveAmoledEnabled(enabled)
+    }
+}

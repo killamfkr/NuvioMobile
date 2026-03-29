@@ -4,6 +4,7 @@ import com.nuvio.app.features.addons.AddonCatalog
 import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.home.HomeCatalogParser
 import com.nuvio.app.features.home.MetaPreview
+import com.nuvio.app.features.home.stableKey
 
 const val CATALOG_PAGE_SIZE = 100
 
@@ -30,14 +31,14 @@ suspend fun fetchCatalogPage(
             skip = skip,
         ),
     )
-    val items = HomeCatalogParser.parseCatalog(payload)
-    val nextSkip = if (items.size >= CATALOG_PAGE_SIZE) {
+    val parsed = HomeCatalogParser.parseCatalogResponse(payload)
+    val nextSkip = if (parsed.rawItemCount >= CATALOG_PAGE_SIZE) {
         (skip ?: 0) + CATALOG_PAGE_SIZE
     } else {
         null
     }
     return CatalogPage(
-        items = items,
+        items = parsed.items,
         nextSkip = nextSkip,
     )
 }
@@ -50,11 +51,11 @@ fun mergeCatalogItems(
     incoming: List<MetaPreview>,
 ): List<MetaPreview> {
     if (incoming.isEmpty()) return existing
-    val seen = existing.mapTo(mutableSetOf()) { item -> "${item.type}:${item.id}" }
+    val seen = existing.mapTo(mutableSetOf()) { item -> item.stableKey() }
     return buildList(existing.size + incoming.size) {
         addAll(existing)
         incoming.forEach { item ->
-            val key = "${item.type}:${item.id}"
+            val key = item.stableKey()
             if (seen.add(key)) {
                 add(item)
             }

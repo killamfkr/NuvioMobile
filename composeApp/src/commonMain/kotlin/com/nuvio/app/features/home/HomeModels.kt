@@ -17,6 +17,8 @@ data class MetaPreview(
     val genres: List<String> = emptyList(),
 )
 
+fun MetaPreview.stableKey(): String = "$type:$id"
+
 enum class PosterShape {
     Poster,
     Square,

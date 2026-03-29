@@ -6,6 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
@@ -14,6 +16,31 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
+
+val LocalAppTheme = staticCompositionLocalOf { AppTheme.WHITE }
+
+val MaterialTheme.appTheme: AppTheme
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalAppTheme.current
+
+private fun buildColorScheme(palette: ThemeColorPalette, amoled: Boolean = false) = darkColorScheme(
+    primary = palette.secondary,
+    onPrimary = palette.onSecondary,
+    primaryContainer = palette.focusBackground,
+    onPrimaryContainer = palette.onSecondary,
+    secondary = palette.secondaryVariant,
+    onSecondary = palette.onSecondaryVariant,
+    background = if (amoled) Color.Black else palette.background,
+    onBackground = Color(0xFFF5F7F8),
+    surface = if (amoled) Color(0xFF050505) else palette.backgroundElevated,
+    onSurface = Color(0xFFF5F7F8),
+    surfaceVariant = if (amoled) Color(0xFF0A0A0A) else palette.backgroundCard,
+    onSurfaceVariant = Color(0xFF969CA3),
+    outline = Color(0xFF252A2A),
+    error = Color(0xFFE36A8A),
+    onError = Color(0xFFFCE5EC),
+)
 
 private val NuvioDarkColors = darkColorScheme(
     primary = Color(0xFF2E86B8),
@@ -139,8 +166,12 @@ private val NuvioRippleConfiguration = RippleConfiguration(
 @Composable
 fun NuvioTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    appTheme: AppTheme = AppTheme.WHITE,
+    amoled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val colorScheme = buildColorScheme(ThemeColors.getColorPalette(appTheme), amoled = amoled)
+
     val density = LocalDensity.current
     CompositionLocalProvider(
         LocalDensity provides Density(
@@ -149,9 +180,10 @@ fun NuvioTheme(
         ),
         LocalNuvioTypeScale provides NuvioTypeTokens,
         LocalRippleConfiguration provides NuvioRippleConfiguration,
+        LocalAppTheme provides appTheme,
     ) {
         MaterialTheme(
-            colorScheme = if (darkTheme) NuvioDarkColors else NuvioDarkColors,
+            colorScheme = colorScheme,
             typography = NuvioTypography,
             content = content,
         )

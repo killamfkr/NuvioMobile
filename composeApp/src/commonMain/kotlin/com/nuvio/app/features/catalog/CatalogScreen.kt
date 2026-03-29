@@ -44,6 +44,7 @@ import com.nuvio.app.core.ui.posterCardClickable
 import com.nuvio.app.core.ui.nuvioPlatformExtraBottomPadding
 import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.PosterShape
+import com.nuvio.app.features.home.stableKey
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -116,7 +117,7 @@ fun CatalogScreen(
             } else {
                 items(
                     items = uiState.items,
-                    key = { item -> "${item.type}:${item.id}" },
+                    key = { item -> item.stableKey() },
                 ) { item ->
                     CatalogPosterTile(
                         item = item,

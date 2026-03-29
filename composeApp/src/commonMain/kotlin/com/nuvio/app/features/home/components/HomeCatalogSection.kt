@@ -7,6 +7,7 @@ import com.nuvio.app.core.ui.NuvioShelfSection
 import com.nuvio.app.core.ui.NuvioViewAllPillSize
 import com.nuvio.app.features.home.HomeCatalogSection
 import com.nuvio.app.features.home.MetaPreview
+import com.nuvio.app.features.home.stableKey
 
 @Composable
 fun HomeCatalogRowSection(
@@ -26,7 +27,7 @@ fun HomeCatalogRowSection(
         rowContentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
         onViewAllClick = onViewAllClick,
         viewAllPillSize = NuvioViewAllPillSize.Compact,
-        key = { item -> item.id },
+        key = { item -> item.stableKey() },
     ) { item ->
         HomePosterCard(
             item = item,

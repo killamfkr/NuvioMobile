@@ -16,8 +16,8 @@ internal object MetaDetailsParser {
     fun parse(payload: String): MetaDetails {
         val root = json.parseToJsonElement(payload).asJsonObjectOrNull()
             ?: error("Expected top-level JSON object in response")
-        val meta = root["meta"].asJsonObjectOrNull()
-            ?: error("Missing or invalid 'meta' object in response")
+        val meta = root.extractMetaObject()
+            ?: error("Response did not contain a valid meta object")
         val links = meta.links()
 
         return MetaDetails(
@@ -87,6 +87,20 @@ internal object MetaDetailsParser {
 
     private fun JsonObject.behaviorHints(): JsonObject =
         this["behaviorHints"] as? JsonObject ?: JsonObject(emptyMap())
+
+    private fun JsonObject.extractMetaObject(): JsonObject? {
+        val data = this["data"].asJsonObjectOrNull()
+        val candidates = listOfNotNull(
+            this["meta"].asJsonObjectOrNull(),
+            data?.get("meta").asJsonObjectOrNull(),
+            data?.takeIf { it.looksLikeMetaObject() },
+            this.takeIf { it.looksLikeMetaObject() },
+        )
+        return candidates.firstOrNull()
+    }
+
+    private fun JsonObject.looksLikeMetaObject(): Boolean =
+        string("id") != null && string("type") != null && string("name") != null
 
     private fun JsonObject.directors(links: List<MetaLink>): List<String> {
         val appExtras = this["app_extras"] as? JsonObject

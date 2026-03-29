@@ -13,8 +13,12 @@ internal object HomeCatalogParser {
     }
 
     fun parseCatalog(payload: String): List<MetaPreview> {
+        return parseCatalogResponse(payload).items
+    }
+
+    fun parseCatalogResponse(payload: String): ParsedCatalogResponse {
         val root = json.parseToJsonElement(payload).jsonObject
-        return root.array("metas")
+        val parsedItems = root.array("metas")
             .mapNotNull { element ->
                 val meta = element as? JsonObject ?: return@mapNotNull null
                 val id = meta.string("id")
@@ -41,6 +45,10 @@ internal object HomeCatalogParser {
                     },
                 )
             }
+        return ParsedCatalogResponse(
+            items = parsedItems.distinctBy { it.stableKey() },
+            rawItemCount = root.array("metas").size,
+        )
     }
 
     private fun JsonObject.string(name: String): String? =
@@ -56,3 +64,8 @@ internal object HomeCatalogParser {
             else -> PosterShape.Poster
         }
 }
+
+data class ParsedCatalogResponse(
+    val items: List<MetaPreview>,
+    val rawItemCount: Int,
+)

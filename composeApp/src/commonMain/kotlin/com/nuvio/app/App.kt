@@ -82,6 +82,7 @@ import com.nuvio.app.features.settings.HomescreenSettingsScreen
 import com.nuvio.app.features.settings.ContinueWatchingSettingsScreen
 import com.nuvio.app.features.settings.AddonsSettingsScreen
 import com.nuvio.app.features.settings.AccountSettingsScreen
+import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.features.streams.StreamsRepository
 import com.nuvio.app.features.streams.StreamsScreen
 import com.nuvio.app.features.watched.WatchedRepository
@@ -162,7 +163,13 @@ fun App() {
             .memoryCachePolicy(CachePolicy.ENABLED)
             .build()
     }
-    NuvioTheme {
+    val selectedTheme by remember {
+        ThemeSettingsRepository.ensureLoaded()
+        ThemeSettingsRepository.selectedTheme
+    }.collectAsStateWithLifecycle()
+    val amoledEnabled by remember { ThemeSettingsRepository.amoledEnabled }.collectAsStateWithLifecycle()
+
+    NuvioTheme(appTheme = selectedTheme, amoled = amoledEnabled) {
         LaunchedEffect(Unit) {
             AuthRepository.initialize()
         }

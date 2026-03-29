@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nuvio.app.core.ui.AppTheme
 import com.nuvio.app.core.ui.PlatformBackHandler
 import com.nuvio.app.core.ui.NuvioScreen
 import com.nuvio.app.core.ui.NuvioScreenHeader
@@ -56,6 +57,12 @@ fun SettingsScreen(
             PlayerSettingsRepository.uiState
         }.collectAsStateWithLifecycle()
 
+        val selectedTheme by remember {
+            ThemeSettingsRepository.ensureLoaded()
+            ThemeSettingsRepository.selectedTheme
+        }.collectAsStateWithLifecycle()
+        val amoledEnabled by remember { ThemeSettingsRepository.amoledEnabled }.collectAsStateWithLifecycle()
+
         var currentPage by rememberSaveable { mutableStateOf(SettingsPage.Root.name) }
         val page = remember(currentPage) { SettingsPage.valueOf(currentPage) }
         val previousPage = page.previousPage()
@@ -70,6 +77,10 @@ fun SettingsScreen(
                 page = page,
                 onPageChange = { currentPage = it.name },
                 showLoadingOverlay = playerSettingsUiState.showLoadingOverlay,
+                selectedTheme = selectedTheme,
+                onThemeSelected = ThemeSettingsRepository::setTheme,
+                amoledEnabled = amoledEnabled,
+                onAmoledToggle = ThemeSettingsRepository::setAmoled,
                 onSwitchProfile = onSwitchProfile,
                 onHomescreenClick = onHomescreenClick,
                 onContinueWatchingClick = onContinueWatchingClick,
@@ -81,6 +92,10 @@ fun SettingsScreen(
                 page = page,
                 onPageChange = { currentPage = it.name },
                 showLoadingOverlay = playerSettingsUiState.showLoadingOverlay,
+                selectedTheme = selectedTheme,
+                onThemeSelected = ThemeSettingsRepository::setTheme,
+                amoledEnabled = amoledEnabled,
+                onAmoledToggle = ThemeSettingsRepository::setAmoled,
                 onSwitchProfile = onSwitchProfile,
                 onHomescreenClick = onHomescreenClick,
                 onContinueWatchingClick = onContinueWatchingClick,
@@ -96,6 +111,10 @@ private fun MobileSettingsScreen(
     page: SettingsPage,
     onPageChange: (SettingsPage) -> Unit,
     showLoadingOverlay: Boolean,
+    selectedTheme: AppTheme,
+    onThemeSelected: (AppTheme) -> Unit,
+    amoledEnabled: Boolean,
+    onAmoledToggle: (Boolean) -> Unit,
     onSwitchProfile: (() -> Unit)? = null,
     onHomescreenClick: () -> Unit = {},
     onContinueWatchingClick: () -> Unit = {},
@@ -126,6 +145,10 @@ private fun MobileSettingsScreen(
             )
             SettingsPage.Appearance -> appearanceSettingsContent(
                 isTablet = false,
+                selectedTheme = selectedTheme,
+                onThemeSelected = onThemeSelected,
+                amoledEnabled = amoledEnabled,
+                onAmoledToggle = onAmoledToggle,
                 onContinueWatchingClick = onContinueWatchingClick,
             )
             SettingsPage.ContentDiscovery -> contentDiscoveryContent(
@@ -142,6 +165,10 @@ private fun TabletSettingsScreen(
     page: SettingsPage,
     onPageChange: (SettingsPage) -> Unit,
     showLoadingOverlay: Boolean,
+    selectedTheme: AppTheme,
+    onThemeSelected: (AppTheme) -> Unit,
+    amoledEnabled: Boolean,
+    onAmoledToggle: (Boolean) -> Unit,
     onSwitchProfile: (() -> Unit)? = null,
     onHomescreenClick: () -> Unit = {},
     onContinueWatchingClick: () -> Unit = {},
@@ -221,6 +248,10 @@ private fun TabletSettingsScreen(
                 )
                 SettingsPage.Appearance -> appearanceSettingsContent(
                     isTablet = true,
+                    selectedTheme = selectedTheme,
+                    onThemeSelected = onThemeSelected,
+                    amoledEnabled = amoledEnabled,
+                    onAmoledToggle = onAmoledToggle,
                     onContinueWatchingClick = onContinueWatchingClick,
                 )
                 SettingsPage.ContentDiscovery -> contentDiscoveryContent(
