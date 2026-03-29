@@ -105,6 +105,7 @@ object WatchProgressRepository {
                     providerAddonId = cached?.providerAddonId,
                     lastStreamTitle = cached?.lastStreamTitle,
                     lastStreamSubtitle = cached?.lastStreamSubtitle,
+                    pauseDescription = cached?.pauseDescription,
                     lastSourceUrl = cached?.lastSourceUrl,
                     isCompleted = entry.duration > 0 && entry.position >= entry.duration,
                 )
@@ -156,6 +157,9 @@ object WatchProgressRepository {
                         logo = meta.logo,
                         episodeTitle = episodeVideo?.title ?: entry.episodeTitle,
                         episodeThumbnail = episodeVideo?.thumbnail ?: entry.episodeThumbnail,
+                        pauseDescription = episodeVideo?.overview
+                            ?: meta.description
+                            ?: entry.pauseDescription,
                     )
                 }
 
@@ -242,6 +246,7 @@ object WatchProgressRepository {
             providerAddonId = session.providerAddonId,
             lastStreamTitle = session.lastStreamTitle,
             lastStreamSubtitle = session.lastStreamSubtitle,
+            pauseDescription = session.pauseDescription,
             lastSourceUrl = session.lastSourceUrl,
             isCompleted = isCompleted,
         )

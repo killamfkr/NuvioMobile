@@ -30,6 +30,7 @@ data class WatchProgressEntry(
     val providerAddonId: String? = null,
     val lastStreamTitle: String? = null,
     val lastStreamSubtitle: String? = null,
+    val pauseDescription: String? = null,
     val lastSourceUrl: String? = null,
     val isCompleted: Boolean = false,
 ) {
@@ -74,6 +75,7 @@ data class WatchProgressPlaybackSession(
     val providerAddonId: String? = null,
     val lastStreamTitle: String? = null,
     val lastStreamSubtitle: String? = null,
+    val pauseDescription: String? = null,
     val lastSourceUrl: String? = null,
 )
 
@@ -91,6 +93,7 @@ data class ContinueWatchingItem(
     val episodeNumber: Int? = null,
     val episodeTitle: String? = null,
     val episodeThumbnail: String? = null,
+    val pauseDescription: String? = null,
     val resumePositionMs: Long,
     val durationMs: Long,
     val progressFraction: Float,
@@ -131,6 +134,7 @@ internal fun WatchProgressEntry.toContinueWatchingItem(): ContinueWatchingItem {
         episodeNumber = episodeNumber,
         episodeTitle = episodeTitle,
         episodeThumbnail = episodeThumbnail,
+        pauseDescription = pauseDescription,
         resumePositionMs = lastPositionMs,
         durationMs = durationMs,
         progressFraction = progressFraction,
@@ -173,6 +177,7 @@ internal fun WatchProgressEntry.toUpNextContinueWatchingItem(
         episodeNumber = nextEpisode.episode,
         episodeTitle = nextEpisode.title,
         episodeThumbnail = nextEpisode.thumbnail,
+        pauseDescription = nextEpisode.overview,
         resumePositionMs = 0L,
         durationMs = 0L,
         progressFraction = 0f,

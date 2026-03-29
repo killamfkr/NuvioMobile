@@ -52,7 +52,7 @@ fun MetaDetailsScreen(
     type: String,
     id: String,
     onBack: () -> Unit,
-    onPlay: ((type: String, videoId: String, parentMetaId: String, parentMetaType: String, title: String, logo: String?, poster: String?, background: String?, seasonNumber: Int?, episodeNumber: Int?, episodeTitle: String?, episodeThumbnail: String?, resumePositionMs: Long?) -> Unit)? = null,
+    onPlay: ((type: String, videoId: String, parentMetaId: String, parentMetaType: String, title: String, logo: String?, poster: String?, background: String?, seasonNumber: Int?, episodeNumber: Int?, episodeTitle: String?, episodeThumbnail: String?, pauseDescription: String?, resumePositionMs: Long?) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val uiState by MetaDetailsRepository.uiState.collectAsStateWithLifecycle()
@@ -136,6 +136,17 @@ fun MetaDetailsScreen(
                         todayIsoDate = CurrentDateProvider.todayIsoDate(),
                     )
                 }
+                val seriesPauseDescription = remember(seriesAction, meta.id, meta.videos) {
+                    val action = seriesAction ?: return@remember null
+                    meta.videos.firstOrNull { video ->
+                        buildPlaybackVideoId(
+                            parentMetaId = meta.id,
+                            seasonNumber = video.season,
+                            episodeNumber = video.episode,
+                            fallbackVideoId = video.id,
+                        ) == action.videoId
+                    }?.overview
+                }
                 val playButtonLabel = remember(movieProgress, seriesAction, meta.type) {
                     when {
                         meta.type == "series" && seriesAction != null ->
@@ -203,6 +214,7 @@ fun MetaDetailsScreen(
                                                 seriesAction.episodeNumber,
                                                 seriesAction.episodeTitle,
                                                 seriesAction.episodeThumbnail,
+                                                seriesPauseDescription,
                                                 seriesAction.resumePositionMs,
                                             )
                                         }
@@ -221,6 +233,7 @@ fun MetaDetailsScreen(
                                                 null,
                                                 null,
                                                 null,
+                                                meta.description,
                                                 movieProgress?.lastPositionMs,
                                             )
                                         }
@@ -260,6 +273,7 @@ fun MetaDetailsScreen(
                                         episode,
                                         video.title,
                                         video.thumbnail,
+                                        video.overview,
                                         savedProgress?.lastPositionMs,
                                     )
                                 },

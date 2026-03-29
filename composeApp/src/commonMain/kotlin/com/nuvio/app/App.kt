@@ -83,6 +83,8 @@ import com.nuvio.app.features.settings.ContinueWatchingSettingsScreen
 import com.nuvio.app.features.settings.AddonsSettingsScreen
 import com.nuvio.app.features.settings.AccountSettingsScreen
 import com.nuvio.app.features.settings.ThemeSettingsRepository
+import com.nuvio.app.features.streams.StreamContext
+import com.nuvio.app.features.streams.StreamContextStore
 import com.nuvio.app.features.streams.StreamsRepository
 import com.nuvio.app.features.streams.StreamsScreen
 import com.nuvio.app.features.watched.WatchedRepository
@@ -123,6 +125,7 @@ data class StreamRoute(
     val episodeNumber: Int? = null,
     val episodeTitle: String? = null,
     val episodeThumbnail: String? = null,
+    val streamContextId: Long? = null,
     val resumePositionMs: Long? = null,
 )
 
@@ -276,8 +279,11 @@ private fun MainAppContent(
             WatchedRepository.uiState
         }.collectAsStateWithLifecycle()
 
-        val onPlay: (String, String, String, String, String, String?, String?, String?, Int?, Int?, String?, String?, Long?) -> Unit =
-            { type, videoId, parentMetaId, parentMetaType, title, logo, poster, background, seasonNumber, episodeNumber, episodeTitle, episodeThumbnail, resumePositionMs ->
+        val onPlay: (String, String, String, String, String, String?, String?, String?, Int?, Int?, String?, String?, String?, Long?) -> Unit =
+            { type, videoId, parentMetaId, parentMetaType, title, logo, poster, background, seasonNumber, episodeNumber, episodeTitle, episodeThumbnail, pauseDescription, resumePositionMs ->
+                val streamContextId = pauseDescription
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { StreamContextStore.put(StreamContext(pauseDescription = it)) }
                 navController.navigate(
                     StreamRoute(
                         type = type,
@@ -292,6 +298,7 @@ private fun MainAppContent(
                         episodeNumber = episodeNumber,
                         episodeTitle = episodeTitle,
                         episodeThumbnail = episodeThumbnail,
+                        streamContextId = streamContextId,
                         resumePositionMs = resumePositionMs,
                     )
                 )
@@ -311,6 +318,9 @@ private fun MainAppContent(
         }
 
         val onContinueWatchingClick: (ContinueWatchingItem) -> Unit = { item ->
+            val streamContextId = item.pauseDescription
+                ?.takeIf { it.isNotBlank() }
+                ?.let { StreamContextStore.put(StreamContext(pauseDescription = it)) }
             navController.navigate(
                 StreamRoute(
                     type = item.parentMetaType,
@@ -325,6 +335,7 @@ private fun MainAppContent(
                     episodeNumber = item.episodeNumber,
                     episodeTitle = item.episodeTitle,
                     episodeThumbnail = item.episodeThumbnail,
+                    streamContextId = streamContextId,
                     resumePositionMs = item.resumePositionMs,
                 ),
             )
@@ -438,6 +449,11 @@ private fun MainAppContent(
                 }
                 composable<StreamRoute> { backStackEntry ->
                     val route = backStackEntry.toRoute<StreamRoute>()
+                    val pauseDescription = remember(route.streamContextId) {
+                        route.streamContextId?.let { contextId ->
+                            StreamContextStore.get(contextId)?.pauseDescription
+                        }
+                    }
                     StreamsScreen(
                         type = route.type,
                         videoId = route.videoId,
@@ -468,6 +484,7 @@ private fun MainAppContent(
                                         episodeThumbnail = route.episodeThumbnail,
                                         streamTitle = stream.streamLabel,
                                         streamSubtitle = stream.streamSubtitle,
+                                        pauseDescription = pauseDescription,
                                         providerName = stream.addonName,
                                         providerAddonId = stream.addonId,
                                         contentType = route.type,
@@ -477,12 +494,14 @@ private fun MainAppContent(
                                         initialPositionMs = route.resumePositionMs ?: 0L,
                                     )
                                 )
+                                route.streamContextId?.let(StreamContextStore::remove)
                                 navController.navigate(
                                     PlayerRoute(launchId = launchId)
                                 )
                             }
                         },
                         onBack = {
+                            route.streamContextId?.let(StreamContextStore::remove)
                             StreamsRepository.clear()
                             navController.popBackStack()
                         },
@@ -511,6 +530,7 @@ private fun MainAppContent(
                         episodeThumbnail = launch.episodeThumbnail,
                         streamTitle = launch.streamTitle,
                         streamSubtitle = launch.streamSubtitle,
+                        pauseDescription = launch.pauseDescription,
                         providerName = launch.providerName,
                         providerAddonId = launch.providerAddonId,
                         contentType = launch.contentType,

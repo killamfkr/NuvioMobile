@@ -46,6 +46,7 @@ fun PlayerScreen(
     providerName: String,
     streamTitle: String,
     streamSubtitle: String?,
+    pauseDescription: String? = null,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     logo: String? = null,
@@ -114,6 +115,7 @@ fun PlayerScreen(
             providerAddonId,
             streamTitle,
             streamSubtitle,
+            pauseDescription,
             sourceUrl,
         ) {
             WatchProgressPlaybackSession(
@@ -138,6 +140,7 @@ fun PlayerScreen(
                 providerAddonId = providerAddonId,
                 lastStreamTitle = streamTitle,
                 lastStreamSubtitle = streamSubtitle,
+                pauseDescription = pauseDescription,
                 lastSourceUrl = sourceUrl,
             )
         }
@@ -448,11 +451,12 @@ fun PlayerScreen(
             if (pausedOverlayVisible && !controlsVisible) {
                 PauseMetadataOverlay(
                     title = title,
+                    logo = logo,
                     isEpisode = isEpisode,
                     seasonNumber = seasonNumber,
                     episodeNumber = episodeNumber,
                     episodeTitle = episodeTitle,
-                    streamSubtitle = streamSubtitle,
+                    pauseDescription = pauseDescription ?: streamSubtitle,
                     providerName = providerName,
                     metrics = metrics,
                     horizontalSafePadding = horizontalSafePadding,
@@ -508,6 +512,7 @@ fun PlayerScreen(
                 OpeningOverlay(
                     artwork = backdropArtwork,
                     logo = logo,
+                    title = title,
                     onBack = onBackWithProgress,
                     horizontalSafePadding = horizontalSafePadding,
                     modifier = Modifier.fillMaxSize(),

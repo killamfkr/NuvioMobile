@@ -1,5 +1,12 @@
 package com.nuvio.app.features.player
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,11 +36,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,10 +59,27 @@ import kotlin.math.max
 internal fun OpeningOverlay(
     artwork: String?,
     logo: String?,
+    title: String?,
     onBack: () -> Unit,
     horizontalSafePadding: Dp,
     modifier: Modifier = Modifier,
 ) {
+    val contentAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(durationMillis = 700, delayMillis = 400, easing = LinearEasing),
+        label = "openingOverlayContentAlpha",
+    )
+    val pulse = rememberInfiniteTransition(label = "openingOverlayContentPulse")
+    val contentScale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "openingOverlayContentScale",
+    )
+
     Box(
         modifier = modifier
             .background(Color.Black.copy(alpha = 0.85f)),
@@ -108,8 +134,31 @@ internal fun OpeningOverlay(
                     contentDescription = null,
                     modifier = Modifier
                         .width(300.dp)
-                        .height(180.dp),
+                        .height(180.dp)
+                        .graphicsLayer {
+                            alpha = contentAlpha
+                            scaleX = contentScale
+                            scaleY = contentScale
+                        },
                     contentScale = ContentScale.Fit,
+                )
+            } else if (!title.isNullOrBlank()) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    style = MaterialTheme.nuvioTypeScale.displayMd.copy(
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    ),
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp)
+                        .graphicsLayer {
+                            alpha = contentAlpha
+                            scaleX = contentScale
+                            scaleY = contentScale
+                        },
                 )
             } else {
                 CircularProgressIndicator(
@@ -160,11 +209,12 @@ internal fun GestureFeedbackPill(
 @Composable
 internal fun PauseMetadataOverlay(
     title: String,
+    logo: String?,
     isEpisode: Boolean,
     seasonNumber: Int?,
     episodeNumber: Int?,
     episodeTitle: String?,
-    streamSubtitle: String?,
+    pauseDescription: String?,
     providerName: String,
     metrics: PlayerLayoutMetrics,
     horizontalSafePadding: Dp,
@@ -181,12 +231,11 @@ internal fun PauseMetadataOverlay(
                     ),
                 ),
             )
-            .windowInsetsPadding(WindowInsets.safeContent)
             .padding(
-                start = 24.dp + horizontalSafePadding,
-                end = 24.dp + horizontalSafePadding,
-                top = 24.dp,
-                bottom = 24.dp,
+                start = horizontalSafePadding + metrics.horizontalPadding,
+                end = horizontalSafePadding + metrics.horizontalPadding,
+                top = 40.dp,
+                bottom = 120.dp,
             ),
         verticalArrangement = Arrangement.Bottom,
     ) {
@@ -196,44 +245,64 @@ internal fun PauseMetadataOverlay(
             color = Color(0xFFB8B8B8),
         )
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.nuvioTypeScale.displayMd.copy(
-                fontSize = max(metrics.titleSize.value * 1.8f, 32f).sp,
-                fontWeight = FontWeight.ExtraBold,
-            ),
-            color = Color.White,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+
+        if (!logo.isNullOrBlank()) {
+            AsyncImage(
+                model = logo,
+                contentDescription = title,
+                contentScale = ContentScale.Fit,
+                alignment = Alignment.BottomStart,
+                modifier = Modifier.height(96.dp),
+            )
+        } else {
+            Text(
+                text = title,
+                style = MaterialTheme.nuvioTypeScale.displayMd.copy(
+                    fontSize = max(metrics.titleSize.value * 1.8f, 32f).sp,
+                    fontWeight = FontWeight.ExtraBold,
+                ),
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
         val episodeInfo = if (isEpisode && seasonNumber != null && episodeNumber != null) {
-            buildString {
-                append("S")
-                append(seasonNumber)
-                append(" • E")
-                append(episodeNumber)
-                if (!episodeTitle.isNullOrBlank()) {
-                    append(" • ")
-                    append(episodeTitle)
-                }
-            }
+            "S${seasonNumber}E${episodeNumber}"
         } else {
             providerName
         }
+
         Text(
             text = episodeInfo,
             style = MaterialTheme.nuvioTypeScale.bodyLg,
             color = Color(0xFFCCCCCC),
+            modifier = Modifier.padding(top = 8.dp),
         )
-        if (!streamSubtitle.isNullOrBlank()) {
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
+
+        if (!episodeTitle.isNullOrBlank()) {
             Text(
-                text = streamSubtitle,
+                text = episodeTitle,
+                style = MaterialTheme.nuvioTypeScale.titleLg,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+        }
+
+        if (!pauseDescription.isNullOrBlank()) {
+            Text(
+                text = pauseDescription,
                 style = MaterialTheme.nuvioTypeScale.bodyLg.copy(lineHeight = 24.sp),
                 color = Color(0xFFD6D6D6),
+                softWrap = true,
+                textAlign = TextAlign.Start,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .fillMaxWidth(0.62f),
             )
         }
     }
