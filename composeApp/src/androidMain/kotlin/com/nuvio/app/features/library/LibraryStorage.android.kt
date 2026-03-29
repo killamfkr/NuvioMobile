@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 
 actual object LibraryStorage {
     private const val preferencesName = "nuvio_library"
-    private const val payloadKey = "library_payload"
+    private fun payloadKey(profileId: Int) = "library_payload_$profileId"
 
     private var preferences: SharedPreferences? = null
 
@@ -13,13 +13,13 @@ actual object LibraryStorage {
         preferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
     }
 
-    actual fun loadPayload(): String? =
-        preferences?.getString(payloadKey, null)
+    actual fun loadPayload(profileId: Int): String? =
+        preferences?.getString(payloadKey(profileId), null)
 
-    actual fun savePayload(payload: String) {
+    actual fun savePayload(profileId: Int, payload: String) {
         preferences
             ?.edit()
-            ?.putString(payloadKey, payload)
+            ?.putString(payloadKey(profileId), payload)
             ?.apply()
     }
 }

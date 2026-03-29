@@ -1,8 +1,8 @@
 package com.nuvio.app.features.addons
 
 internal expect object AddonStorage {
-    fun loadInstalledAddonUrls(): List<String>
-    fun saveInstalledAddonUrls(urls: List<String>)
+    fun loadInstalledAddonUrls(profileId: Int): List<String>
+    fun saveInstalledAddonUrls(profileId: Int, urls: List<String>)
 }
 
 expect suspend fun httpGetText(url: String): String

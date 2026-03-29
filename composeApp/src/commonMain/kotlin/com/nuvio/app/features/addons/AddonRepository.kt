@@ -48,13 +48,15 @@ object AddonRepository {
 
     private var initialized = false
     private var pulledFromServer = false
+    private var currentProfileId: Int = 1
 
     fun initialize() {
         if (initialized) return
         initialized = true
-        log.d { "initialize() — loading local addons" }
+        currentProfileId = ProfileRepository.activeProfileId
+        log.d { "initialize() — loading local addons for profile $currentProfileId" }
 
-        val storedUrls = AddonStorage.loadInstalledAddonUrls()
+        val storedUrls = AddonStorage.loadInstalledAddonUrls(currentProfileId)
         log.d { "initialize() — local addon count: ${storedUrls.size}" }
         if (storedUrls.isEmpty()) return
 
@@ -70,7 +72,16 @@ object AddonRepository {
         storedUrls.forEach(::refreshAddon)
     }
 
+    fun onProfileChanged(profileId: Int) {
+        if (profileId == currentProfileId && initialized) return
+        currentProfileId = profileId
+        initialized = false
+        pulledFromServer = false
+        _uiState.value = AddonsUiState()
+    }
+
     suspend fun pullFromServer(profileId: Int) {
+        currentProfileId = profileId
         log.i { "pullFromServer() — profileId=$profileId, initialized=$initialized, pulledFromServer=$pulledFromServer" }
         runCatching {
             val rows = SupabaseProvider.client.postgrest
@@ -86,7 +97,7 @@ object AddonRepository {
             urls.forEachIndexed { i, u -> log.d { "  server[$i]: $u" } }
 
             if (urls.isEmpty() && !pulledFromServer) {
-                val localUrls = AddonStorage.loadInstalledAddonUrls()
+                val localUrls = AddonStorage.loadInstalledAddonUrls(profileId)
                 log.i { "pullFromServer() — server empty, local has ${localUrls.size} addons" }
                 if (localUrls.isNotEmpty()) {
                     log.i { "pullFromServer() — migrating local addons to server for profile $profileId" }
@@ -272,6 +283,7 @@ object AddonRepository {
 
     private fun persist() {
         AddonStorage.saveInstalledAddonUrls(
+            currentProfileId,
             _uiState.value.addons.map { it.manifestUrl },
         )
     }

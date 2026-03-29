@@ -53,13 +53,25 @@ object LibraryRepository {
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
     private var hasLoaded = false
+    private var currentProfileId: Int = 1
     private var itemsById: MutableMap<String, LibraryItem> = mutableMapOf()
 
     fun ensureLoaded() {
         if (hasLoaded) return
-        hasLoaded = true
+        loadFromDisk(ProfileRepository.activeProfileId)
+    }
 
-        val payload = LibraryStorage.loadPayload().orEmpty().trim()
+    fun onProfileChanged(profileId: Int) {
+        if (profileId == currentProfileId && hasLoaded) return
+        loadFromDisk(profileId)
+    }
+
+    private fun loadFromDisk(profileId: Int) {
+        currentProfileId = profileId
+        hasLoaded = true
+        itemsById.clear()
+
+        val payload = LibraryStorage.loadPayload(profileId).orEmpty().trim()
         if (payload.isNotEmpty()) {
             val items = runCatching {
                 json.decodeFromString<StoredLibraryPayload>(payload).items
@@ -71,6 +83,7 @@ object LibraryRepository {
     }
 
     suspend fun pullFromServer(profileId: Int) {
+        currentProfileId = profileId
         runCatching {
             val params = buildJsonObject {
                 put("p_profile_id", profileId)
@@ -163,6 +176,7 @@ object LibraryRepository {
 
     private fun persist() {
         LibraryStorage.savePayload(
+            currentProfileId,
             json.encodeToString(
                 StoredLibraryPayload(
                     items = itemsById.values.sortedByDescending { it.savedAtEpochMs },

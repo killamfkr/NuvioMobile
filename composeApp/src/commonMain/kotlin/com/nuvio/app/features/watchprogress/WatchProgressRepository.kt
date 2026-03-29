@@ -45,22 +45,35 @@ object WatchProgressRepository {
     val uiState: StateFlow<WatchProgressUiState> = _uiState.asStateFlow()
 
     private var hasLoaded = false
+    private var currentProfileId: Int = 1
     private var entriesByVideoId: MutableMap<String, WatchProgressEntry> = mutableMapOf()
 
     fun ensureLoaded() {
         if (hasLoaded) return
+        loadFromDisk(ProfileRepository.activeProfileId)
+    }
+
+    fun onProfileChanged(profileId: Int) {
+        if (profileId == currentProfileId && hasLoaded) return
+        loadFromDisk(profileId)
+    }
+
+    private fun loadFromDisk(profileId: Int) {
+        currentProfileId = profileId
         hasLoaded = true
+        entriesByVideoId.clear()
 
-        val payload = WatchProgressStorage.loadPayload().orEmpty().trim()
-        if (payload.isEmpty()) return
-
-        entriesByVideoId = WatchProgressCodec.decodeEntries(payload)
-            .associateBy { it.videoId }
-            .toMutableMap()
+        val payload = WatchProgressStorage.loadPayload(profileId).orEmpty().trim()
+        if (payload.isNotEmpty()) {
+            entriesByVideoId = WatchProgressCodec.decodeEntries(payload)
+                .associateBy { it.videoId }
+                .toMutableMap()
+        }
         publish()
     }
 
     suspend fun pullFromServer(profileId: Int) {
+        currentProfileId = profileId
         runCatching {
             val params = buildJsonObject { put("p_profile_id", profileId) }
             val result = SupabaseProvider.client.postgrest.rpc("sync_pull_watch_progress", params)
@@ -292,6 +305,7 @@ object WatchProgressRepository {
 
     private fun persist() {
         WatchProgressStorage.savePayload(
+            currentProfileId,
             WatchProgressCodec.encodeEntries(entriesByVideoId.values),
         )
     }

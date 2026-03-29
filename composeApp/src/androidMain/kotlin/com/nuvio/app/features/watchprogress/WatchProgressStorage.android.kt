@@ -13,13 +13,13 @@ actual object WatchProgressStorage {
         preferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
     }
 
-    actual fun loadPayload(): String? =
-        preferences?.getString(payloadKey, null)
+    actual fun loadPayload(profileId: Int): String? =
+        preferences?.getString("${payloadKey}_$profileId", null)
 
-    actual fun savePayload(payload: String) {
+    actual fun savePayload(profileId: Int, payload: String) {
         preferences
             ?.edit()
-            ?.putString(payloadKey, payload)
+            ?.putString("${payloadKey}_$profileId", payload)
             ?.apply()
     }
 }

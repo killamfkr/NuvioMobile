@@ -14,19 +14,19 @@ import platform.posix.memcpy
 actual object AddonStorage {
     private const val addonUrlsKey = "installed_manifest_urls"
 
-    actual fun loadInstalledAddonUrls(): List<String> =
+    actual fun loadInstalledAddonUrls(profileId: Int): List<String> =
         NSUserDefaults.standardUserDefaults
-            .stringForKey(addonUrlsKey)
+            .stringForKey("${addonUrlsKey}_$profileId")
             .orEmpty()
             .lineSequence()
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .toList()
 
-    actual fun saveInstalledAddonUrls(urls: List<String>) {
+    actual fun saveInstalledAddonUrls(profileId: Int, urls: List<String>) {
         NSUserDefaults.standardUserDefaults.setObject(
             urls.joinToString(separator = "\n"),
-            forKey = addonUrlsKey,
+            forKey = "${addonUrlsKey}_$profileId",
         )
     }
 }

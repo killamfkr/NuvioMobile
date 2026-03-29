@@ -18,19 +18,19 @@ actual object AddonStorage {
         preferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
     }
 
-    actual fun loadInstalledAddonUrls(): List<String> =
+    actual fun loadInstalledAddonUrls(profileId: Int): List<String> =
         preferences
-            ?.getString(addonUrlsKey, null)
+            ?.getString("${addonUrlsKey}_$profileId", null)
             .orEmpty()
             .lineSequence()
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .toList()
 
-    actual fun saveInstalledAddonUrls(urls: List<String>) {
+    actual fun saveInstalledAddonUrls(profileId: Int, urls: List<String>) {
         preferences
             ?.edit()
-            ?.putString(addonUrlsKey, urls.joinToString(separator = "\n"))
+            ?.putString("${addonUrlsKey}_$profileId", urls.joinToString(separator = "\n"))
             ?.apply()
     }
 }
