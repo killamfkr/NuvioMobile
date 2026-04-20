@@ -7,6 +7,3 @@
 [submodule "mediamp"]
 	path = mediamp
 	url = https://github.com/tapframe/mediampnuvio.git
-[submodule "vendor/mpv-kt-upstream"]
-	path = vendor/mpv-kt-upstream
-	url = https://github.com/zt64/mpv-kt.git
