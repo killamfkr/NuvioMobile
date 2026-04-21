@@ -342,7 +342,10 @@ fun MetaDetailsScreen(
                     val action = seriesAction ?: return@remember null
                     seriesActionVideo?.id?.takeIf { it.isNotBlank() } ?: action.videoId
                 }
+                // At least one catalog video with season/episode (drives play button, collection fallback, etc.)
                 val hasEpisodes = meta.videos.any { it.season != null || it.episode != null }
+                // Show the Episodes section for any series (empty / messages / list) or when the addon attached videos.
+                val hasEpisodesSection = meta.type == "series" || meta.videos.isNotEmpty()
                 val hasProductionSection = remember(meta) {
                     meta.productionCompanies.isNotEmpty() || meta.networks.isNotEmpty()
                 }
@@ -639,6 +642,7 @@ fun MetaDetailsScreen(
                                     hasProductionSection = hasProductionSection,
                                     hasTrailersSection = hasTrailersSection,
                                     hasEpisodes = hasEpisodes,
+                                    hasEpisodesSection = hasEpisodesSection,
                                     hasAdditionalInfoSection = hasAdditionalInfoSection,
                                     hasCollectionSection = hasCollectionSection,
                                     hasMoreLikeThisSection = hasMoreLikeThisSection,
@@ -943,6 +947,7 @@ private fun ConfiguredMetaSections(
     hasProductionSection: Boolean,
     hasTrailersSection: Boolean,
     hasEpisodes: Boolean,
+    hasEpisodesSection: Boolean,
     hasAdditionalInfoSection: Boolean,
     hasCollectionSection: Boolean,
     hasMoreLikeThisSection: Boolean,
@@ -978,7 +983,7 @@ private fun ConfiguredMetaSections(
             MetaScreenSectionKey.CAST -> meta.cast.isNotEmpty()
             MetaScreenSectionKey.COMMENTS -> shouldShowComments && (isCommentsLoading || comments.isNotEmpty() || !commentsError.isNullOrBlank())
             MetaScreenSectionKey.TRAILERS -> hasTrailersSection
-            MetaScreenSectionKey.EPISODES -> hasEpisodes
+            MetaScreenSectionKey.EPISODES -> hasEpisodesSection
             MetaScreenSectionKey.DETAILS -> hasAdditionalInfoSection
             MetaScreenSectionKey.COLLECTION -> !hasEpisodes && hasCollectionSection
             MetaScreenSectionKey.MORE_LIKE_THIS -> hasMoreLikeThisSection
@@ -1037,7 +1042,7 @@ private fun ConfiguredMetaSections(
                 }
             }
             MetaScreenSectionKey.EPISODES -> {
-                if (hasEpisodes) {
+                if (hasEpisodesSection) {
                     DetailSeriesContent(
                         meta = meta,
                         showHeader = showHeader,
