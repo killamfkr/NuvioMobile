@@ -222,6 +222,31 @@ fun PlayerScreen(
         val backdropArtwork = background ?: poster
         val displayedPositionMs = scrubbingPositionMs ?: playbackSnapshot.positionMs
         val isEpisode = activeSeasonNumber != null && activeEpisodeNumber != null
+        val sessionMediaTitle = remember(title, activeStreamTitle) {
+            title.trim().takeIf { it.isNotEmpty() }
+                ?: activeStreamTitle.trim().takeIf { it.isNotEmpty() }
+                ?: "Nuvio"
+        }
+        val sessionMediaSubtitle = remember(
+            activeSeasonNumber,
+            activeEpisodeNumber,
+            activeEpisodeTitle,
+            activeStreamSubtitle,
+            activeStreamTitle,
+            activeProviderName,
+            isEpisode,
+        ) {
+            buildList {
+                if (activeSeasonNumber != null && activeEpisodeNumber != null) {
+                    add("S$activeSeasonNumber E$activeEpisodeNumber")
+                }
+                activeEpisodeTitle?.trim()?.takeIf { it.isNotEmpty() }?.let(::add)
+                activeStreamSubtitle?.trim()?.takeIf { it.isNotEmpty() }?.let(::add)
+                if (!isEpisode) {
+                    activeProviderName.trim().takeIf { it.isNotEmpty() }?.let(::add)
+                }
+            }.distinct().joinToString(" · ").takeIf { it.isNotEmpty() }
+        }
         val currentGestureFeedback = liveGestureFeedback ?: gestureFeedback
 
         LaunchedEffect(currentGestureFeedback) {
@@ -1470,6 +1495,9 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxSize(),
                 playWhenReady = shouldPlay,
                 resizeMode = resizeMode,
+                sessionDisplayTitle = sessionMediaTitle,
+                sessionDisplaySubtitle = sessionMediaSubtitle,
+                sessionPosterUrl = backdropArtwork,
                 onControllerReady = { controller ->
                     playerController = controller
                     playerControllerSourceUrl = activeSourceUrl

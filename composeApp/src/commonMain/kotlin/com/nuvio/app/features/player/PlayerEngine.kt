@@ -60,6 +60,11 @@ expect fun PlatformPlayerSurface(
     playWhenReady: Boolean = true,
     resizeMode: PlayerResizeMode = PlayerResizeMode.Fit,
     useNativeController: Boolean = false,
+    /** Shown in system media controls / lock screen (Android MediaSession). */
+    sessionDisplayTitle: String = "",
+    sessionDisplaySubtitle: String? = null,
+    /** HTTP(S) poster URL for lock screen / notification artwork when supported. */
+    sessionPosterUrl: String? = null,
     onControllerReady: (PlayerEngineController) -> Unit,
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
     onError: (String?) -> Unit,
