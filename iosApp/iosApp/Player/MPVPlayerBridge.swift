@@ -193,6 +193,9 @@ final class MPVPlayerViewController: UIViewController {
         metalLayer.contentsScale = UIScreen.main.nativeScale
         metalLayer.framebufferOnly = true
         metalLayer.backgroundColor = UIColor.black.cgColor
+        // Required for Dolby Vision / HDR10+ style metadata to reach the display as HDR on
+        // XDR and compatible external screens (mpv maps DV RPU into PQ + scene peaks).
+        metalLayer.wantsExtendedDynamicRangeContent = true
         view.layer.addSublayer(metalLayer)
 
         setupMpv()
@@ -246,8 +249,10 @@ final class MPVPlayerViewController: UIViewController {
         checkError(mpv_set_option_string(mpv, "subs-fallback", "yes"))
         checkError(mpv_set_option_string(mpv, "keep-open", "yes"))
         checkError(mpv_set_option_string(mpv, "target-colorspace-hint", "yes"))
+        // Map Dolby Vision dynamic metadata into HDR10-style PQ metadata for the swapchain.
+        checkError(mpv_set_option_string(mpv, "target-colorspace-hint-mode", "source-dynamic"))
         checkError(mpv_set_option_string(mpv, "tone-mapping", "auto"))
-        checkError(mpv_set_option_string(mpv, "hdr-compute-peak", "no"))
+        checkError(mpv_set_option_string(mpv, "hdr-compute-peak", "auto"))
 
         checkError(mpv_initialize(mpv))
 
