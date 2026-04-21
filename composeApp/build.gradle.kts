@@ -239,6 +239,8 @@ kotlin {
             implementation(libs.androidx.media3.common)
             implementation(libs.androidx.media3.container)
             implementation(libs.androidx.media3.extractor)
+            // FFmpeg audio decoder fallback (used when Decoder Priority is "Prefer App (FFmpeg)" — helps E-AC3 / DD+).
+            implementation(libs.jellyfin.media3.ffmpeg.decoder)
             implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("lib-*.aar"))))
         }
         commonMain.dependencies {

@@ -21,6 +21,8 @@ kotlinx-serialization = "1.8.1"
 ktor = "3.4.1"
 material3 = "1.10.0-alpha05"
 androidx-media3 = "1.8.0"
+# Prebuilt FFmpeg extension for Media3 (E-AC3 and other codecs when MediaCodec fails). GPL-3.0.
+jellyfin-media3-ffmpeg-decoder = "1.8.0+1"
 supabase = "3.4.1"
 quickjsKt = "1.0.1"
 ksoup = "0.2.6"
@@ -67,6 +69,7 @@ androidx-media3-session = { module = "androidx.media3:media3-session", version.r
 androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "androidx-media3" }
 androidx-media3-container = { module = "androidx.media3:media3-container", version.ref = "androidx-media3" }
 androidx-media3-extractor = { module = "androidx.media3:media3-extractor", version.ref = "androidx-media3" }
+jellyfin-media3-ffmpeg-decoder = { module = "org.jellyfin.media3:media3-ffmpeg-decoder", version.ref = "jellyfin-media3-ffmpeg-decoder" }
 supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }
 supabase-functions = { module = "io.github.jan-tennert.supabase:functions-kt", version.ref = "supabase" }

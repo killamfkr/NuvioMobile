@@ -1056,6 +1056,11 @@ private fun DecoderPriorityDialog(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                 )
+                Text(
+                    text = "“Prefer App (FFmpeg)” uses a bundled decoder when the device codec fails (e.g. some E-AC3 / DD+ tracks).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
