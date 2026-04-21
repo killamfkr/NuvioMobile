@@ -7,6 +7,8 @@
 xcuserdata
 !src/**/build/
 local.properties
+SUPABASE_URL=https://dcgnsnvyhxaeoqbpbwok.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_Uaw5uO13I8Ii8EWOCRXgHg_fvH-gXSO
 .idea
 .DS_Store
 captures
