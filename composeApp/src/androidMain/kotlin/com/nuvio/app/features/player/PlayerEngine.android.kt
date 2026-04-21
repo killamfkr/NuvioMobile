@@ -30,6 +30,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -106,6 +107,14 @@ actual fun PlatformPlayerSurface(
             setParameters(
                 buildUponParameters()
                     .setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true)
+                    // HW audio offload can cause periodic stutter / A/V drift on some devices (Android 13+).
+                    .setAudioOffloadPreferences(
+                        TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                            .setAudioOffloadMode(
+                                TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED,
+                            )
+                            .build(),
+                    ),
             )
             if (playerSettings.tunnelingEnabled) {
                 setParameters(buildUponParameters().setTunnelingEnabled(true))
