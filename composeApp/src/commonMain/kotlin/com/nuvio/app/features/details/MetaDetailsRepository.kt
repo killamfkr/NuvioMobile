@@ -34,12 +34,16 @@ object MetaDetailsRepository {
     private var activeRequestKey: String? = null
     private val cachedMetaByRequestKey = mutableMapOf<String, CachedMetaEntry>()
 
-    fun load(type: String, id: String) {
-        log.d { "load() called — type=$type id=$id" }
+    fun load(type: String, id: String, forceRefresh: Boolean = false) {
+        log.d { "load() called — type=$type id=$id forceRefresh=$forceRefresh" }
         val requestKey = "$type:$id"
         val currentState = _uiState.value
         val mdbListSettings = MdbListSettingsRepository.snapshot()
         val metaScreenSettingsFingerprint = buildMetaScreenSettingsFingerprint(mdbListSettings)
+
+        if (forceRefresh) {
+            cachedMetaByRequestKey.remove(requestKey)
+        }
 
         cachedMetaByRequestKey[requestKey]?.let { cachedEntry ->
             cachedEntry.metaScreenMeta
@@ -84,7 +88,11 @@ object MetaDetailsRepository {
             return
         }
 
-        if (currentState.meta?.type == type && currentState.meta.id == id && !currentState.isLoading) {
+        if (!forceRefresh &&
+            currentState.meta?.type == type &&
+            currentState.meta.id == id &&
+            !currentState.isLoading
+        ) {
             log.d { "Skipping reload for cached meta — type=$type id=$id" }
             activeRequestKey = requestKey
             return
@@ -181,9 +189,13 @@ object MetaDetailsRepository {
         _uiState.value = MetaDetailsUiState()
     }
 
-    suspend fun fetch(type: String, id: String): MetaDetails? {
+    suspend fun fetch(type: String, id: String, forceRefresh: Boolean = false): MetaDetails? {
         val requestKey = "$type:$id"
-        cachedMetaByRequestKey[requestKey]?.let { return it.baseMeta }
+        if (!forceRefresh) {
+            cachedMetaByRequestKey[requestKey]?.let { return it.baseMeta }
+        } else {
+            cachedMetaByRequestKey.remove(requestKey)
+        }
 
         val manifests = AddonRepository.uiState.value.addons
             .mapNotNull { it.manifest }

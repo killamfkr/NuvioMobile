@@ -259,7 +259,7 @@ fun MetaDetailsScreen(
                     Button(
                         onClick = {
                             NetworkStatusRepository.requestRefresh(force = true)
-                            MetaDetailsRepository.load(type, id)
+                            MetaDetailsRepository.load(type, id, forceRefresh = true)
                         },
                     ) {
                         Text("Retry")
@@ -343,6 +343,7 @@ fun MetaDetailsScreen(
                     seriesActionVideo?.id?.takeIf { it.isNotBlank() } ?: action.videoId
                 }
                 val hasEpisodes = meta.videos.any { it.season != null || it.episode != null }
+                val hasEpisodesSection = meta.type == "series" || meta.videos.isNotEmpty()
                 val hasProductionSection = remember(meta) {
                     meta.productionCompanies.isNotEmpty() || meta.networks.isNotEmpty()
                 }
@@ -638,7 +639,8 @@ fun MetaDetailsScreen(
                                     preferredEpisodeSeasonNumber = seriesAction?.seasonNumber,
                                     hasProductionSection = hasProductionSection,
                                     hasTrailersSection = hasTrailersSection,
-                                    hasEpisodes = hasEpisodes,
+                                    hasEpisodesSection = hasEpisodesSection,
+                                    hasStructuredEpisodes = hasEpisodes,
                                     hasAdditionalInfoSection = hasAdditionalInfoSection,
                                     hasCollectionSection = hasCollectionSection,
                                     hasMoreLikeThisSection = hasMoreLikeThisSection,
@@ -738,6 +740,13 @@ fun MetaDetailsScreen(
                             onBack = onBack,
                             onToggleSaved = toggleSaved,
                             modifier = Modifier.zIndex(2f),
+                            onRefreshDetails = if (meta.type == "series" || meta.videos.isNotEmpty()) {
+                                {
+                                    MetaDetailsRepository.load(type, id, forceRefresh = true)
+                                }
+                            } else {
+                                null
+                            },
                         )
 
                         selectedEpisodeForActions?.let { selectedEpisode ->
@@ -942,7 +951,9 @@ private fun ConfiguredMetaSections(
     preferredEpisodeSeasonNumber: Int?,
     hasProductionSection: Boolean,
     hasTrailersSection: Boolean,
-    hasEpisodes: Boolean,
+    hasEpisodesSection: Boolean,
+    /** True when at least one catalog video has season/episode (legacy collection fallback). */
+    hasStructuredEpisodes: Boolean,
     hasAdditionalInfoSection: Boolean,
     hasCollectionSection: Boolean,
     hasMoreLikeThisSection: Boolean,
@@ -978,9 +989,9 @@ private fun ConfiguredMetaSections(
             MetaScreenSectionKey.CAST -> meta.cast.isNotEmpty()
             MetaScreenSectionKey.COMMENTS -> shouldShowComments && (isCommentsLoading || comments.isNotEmpty() || !commentsError.isNullOrBlank())
             MetaScreenSectionKey.TRAILERS -> hasTrailersSection
-            MetaScreenSectionKey.EPISODES -> hasEpisodes
+            MetaScreenSectionKey.EPISODES -> hasEpisodesSection
             MetaScreenSectionKey.DETAILS -> hasAdditionalInfoSection
-            MetaScreenSectionKey.COLLECTION -> !hasEpisodes && hasCollectionSection
+            MetaScreenSectionKey.COLLECTION -> !hasStructuredEpisodes && hasCollectionSection
             MetaScreenSectionKey.MORE_LIKE_THIS -> hasMoreLikeThisSection
         }
     }
@@ -1037,7 +1048,7 @@ private fun ConfiguredMetaSections(
                 }
             }
             MetaScreenSectionKey.EPISODES -> {
-                if (hasEpisodes) {
+                if (hasEpisodesSection) {
                     DetailSeriesContent(
                         meta = meta,
                         showHeader = showHeader,
@@ -1056,7 +1067,7 @@ private fun ConfiguredMetaSections(
                 }
             }
             MetaScreenSectionKey.COLLECTION -> {
-                if (!hasEpisodes && hasCollectionSection) {
+                if (!hasStructuredEpisodes && hasCollectionSection) {
                     DetailPosterRailSection(
                         title = meta.collectionName.orEmpty(),
                         items = meta.collectionItems,

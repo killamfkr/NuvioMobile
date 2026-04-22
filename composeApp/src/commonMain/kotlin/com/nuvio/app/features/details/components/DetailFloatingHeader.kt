@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +51,8 @@ fun DetailFloatingHeader(
     onBack: () -> Unit,
     onToggleSaved: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Reload metadata from addons (e.g. refresh episode list). Null hides the control. */
+    onRefreshDetails: (() -> Unit)? = null,
 ) {
     val safeAreaTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val headerTopPadding = (safeAreaTop - 6.dp).coerceAtLeast(safeAreaTop * 0.8f)
@@ -132,11 +135,30 @@ fun DetailFloatingHeader(
                     }
                 }
 
-                DetailFloatingHeaderAction(
-                    isSaved = isSaved,
-                    enabled = interactive,
-                    onClick = onToggleSaved,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onRefreshDetails != null && interactive) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable(enabled = interactive, onClick = onRefreshDetails),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Refresh,
+                                contentDescription = "Reload details",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
+                    }
+                    DetailFloatingHeaderAction(
+                        isSaved = isSaved,
+                        enabled = interactive,
+                        onClick = onToggleSaved,
+                    )
+                }
             }
 
             if (isIos) {
