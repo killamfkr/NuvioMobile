@@ -1,8 +1,10 @@
 package com.nuvio.app.features.player
 
 import android.app.Activity
+import android.app.PendingIntent
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.util.TypedValue
@@ -27,6 +29,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -38,6 +41,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.session.MediaSession
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.extractor.ts.TsExtractor
@@ -45,6 +49,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.SubtitleView
 import androidx.media3.ui.CaptionStyleCompat
+import com.nuvio.app.MainActivity
 import com.nuvio.app.R
 import io.github.peerless2012.ass.media.widget.AssSubtitleView
 import kotlinx.coroutines.delay
@@ -59,6 +64,25 @@ import java.util.Locale
 
 private const val TAG = "NuvioPlayer"
 
+private const val NUVIO_MEDIA_SESSION_ID = "nuvio_playback"
+private const val MEDIA_SESSION_ACTIVITY_REQUEST_CODE = 1001
+
+private fun buildSessionMediaMetadata(
+    title: String,
+    subtitle: String?,
+    posterUrl: String?,
+): MediaMetadata {
+    val trimmedTitle = title.trim()
+    val builder = MediaMetadata.Builder()
+        .setDisplayTitle(trimmedTitle.ifBlank { "Nuvio" })
+        .setTitle(trimmedTitle.ifBlank { "Nuvio" })
+    subtitle?.trim()?.takeIf { it.isNotEmpty() }?.let { builder.setSubtitle(it) }
+    posterUrl?.trim()?.takeIf { it.startsWith("http") }?.let {
+        builder.setArtworkUri(Uri.parse(it))
+    }
+    return builder.build()
+}
+
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 actual fun PlatformPlayerSurface(
@@ -71,6 +95,9 @@ actual fun PlatformPlayerSurface(
     playWhenReady: Boolean,
     resizeMode: PlayerResizeMode,
     useNativeController: Boolean,
+    sessionDisplayTitle: String,
+    sessionDisplaySubtitle: String?,
+    sessionPosterUrl: String?,
     onControllerReady: (PlayerEngineController) -> Unit,
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
     onError: (String?) -> Unit,
@@ -97,7 +124,15 @@ actual fun PlatformPlayerSurface(
         LibassRenderType.valueOf(playerSettings.libassRenderType)
     }.getOrDefault(LibassRenderType.CUES)
 
-    val exoPlayer = remember(sourceUrl, sourceAudioUrl, sanitizedSourceHeaders, sanitizedSourceResponseHeaders) {
+    val exoPlayer = remember(
+        sourceUrl,
+        sourceAudioUrl,
+        sanitizedSourceHeaders,
+        sanitizedSourceResponseHeaders,
+        sessionDisplayTitle,
+        sessionDisplaySubtitle,
+        sessionPosterUrl,
+    ) {
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(playerSettings.decoderPriority)
             .setMapDV7ToHevc(playerSettings.mapDV7ToHevc)
@@ -158,14 +193,23 @@ actual fun PlatformPlayerSurface(
                 .build()
         }
 
+        val sessionMetadata = buildSessionMediaMetadata(
+            title = sessionDisplayTitle,
+            subtitle = sessionDisplaySubtitle,
+            posterUrl = sessionPosterUrl,
+        )
+
         player.apply {
                 if (!sourceAudioUrl.isNullOrBlank()) {
                     val msf = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
-                    val videoSource = msf.createMediaSource(MediaItem.fromUri(sourceUrl))
-                    val audioSource = msf.createMediaSource(MediaItem.fromUri(sourceAudioUrl))
+                    val videoItem = MediaItem.Builder().setUri(sourceUrl).setMediaMetadata(sessionMetadata).build()
+                    val audioItem =
+                        MediaItem.Builder().setUri(sourceAudioUrl).setMediaMetadata(sessionMetadata).build()
+                    val videoSource = msf.createMediaSource(videoItem)
+                    val audioSource = msf.createMediaSource(audioItem)
                     setMediaSource(MergingMediaSource(videoSource, audioSource))
                 } else {
-                    setMediaItem(MediaItem.fromUri(sourceUrl))
+                    setMediaItem(MediaItem.Builder().setUri(sourceUrl).setMediaMetadata(sessionMetadata).build())
                 }
                 prepare()
                 this.playWhenReady = playWhenReady
@@ -257,6 +301,26 @@ actual fun PlatformPlayerSurface(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             exoPlayer.release()
+        }
+    }
+
+    DisposableEffect(exoPlayer, context) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val sessionActivityPendingIntent = PendingIntent.getActivity(
+            context,
+            MEDIA_SESSION_ACTIVITY_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val mediaSession = MediaSession.Builder(context, exoPlayer)
+            .setSessionActivity(sessionActivityPendingIntent)
+            .setId(NUVIO_MEDIA_SESSION_ID)
+            .build()
+
+        onDispose {
+            mediaSession.release()
         }
     }
 
