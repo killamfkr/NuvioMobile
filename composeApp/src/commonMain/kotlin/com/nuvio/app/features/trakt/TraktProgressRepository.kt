@@ -1233,7 +1233,7 @@ object TraktProgressRepository {
         }
         return try {
             withTimeoutOrNull(METADATA_FETCH_TIMEOUT_MS) {
-                MetaDetailsRepository.fetch(type = normalizedType, id = metaId)
+                MetaDetailsRepository.fetch(type = normalizedType, id = metaId, cacheResult = false)
             }
         } catch (error: CancellationException) {
             throw error

@@ -32,6 +32,7 @@ class P2pStreamingEngineAndroidTest {
         assertEquals(NuvioUploadMode.Unlimited, uploading.uploadMode)
         assertEquals(NuvioTorrentProfile.Fast, uploading.torrentProfile)
         assertEquals(P2pCacheSize.GB_5.bytes, uploading.diskCacheCapacityBytes)
+        assertEquals(32L * 1024L * 1024L, uploading.memoryCacheCapacityBytes)
         assertEquals(0, downloadOnly.streamInactivityTimeoutMilliseconds)
         assertEquals(NuvioUploadMode.Disabled, downloadOnly.uploadMode)
         assertEquals(NuvioTorrentProfile.Soft, downloadOnly.torrentProfile)

@@ -436,7 +436,7 @@ object TraktEpisodeMappingService {
         for (type in typeCandidates) {
             for (candidateId in idCandidates) {
                 val meta = withTimeoutOrNull(3_500L) {
-                    MetaDetailsRepository.fetch(type = type, id = candidateId)
+                    MetaDetailsRepository.fetch(type = type, id = candidateId, cacheResult = false)
                 } ?: continue
                 val episodes = meta.videos.toEpisodeMappingEntries()
                 if (episodes.isNotEmpty()) return episodes

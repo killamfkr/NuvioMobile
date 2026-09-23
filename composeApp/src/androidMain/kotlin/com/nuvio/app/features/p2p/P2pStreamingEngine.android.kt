@@ -35,6 +35,8 @@ private const val TAG = "P2pStreamingEngine"
 private const val DIAGNOSTIC_TAG = "NuvioP2PDiag"
 private const val DIAGNOSTIC_SAMPLE_INTERVAL_MS = 1_000L
 
+private const val MemoryCacheCapacityBytes = 32L * 1024L * 1024L
+
 internal fun buildNuvioEngineConfig(
     stateDirectory: File,
     cacheDirectory: File,
@@ -44,6 +46,7 @@ internal fun buildNuvioEngineConfig(
 ): NuvioEngineConfig = NuvioEngineConfig(
     dataDirectory = stateDirectory,
     cacheDirectory = cacheDirectory,
+    memoryCacheCapacityBytes = MemoryCacheCapacityBytes,
     diskCacheCapacityBytes = diskCacheCapacityBytes,
     torrentProfile = when (torrentProfile) {
         P2pTorrentProfile.SOFT -> NuvioTorrentProfile.Soft

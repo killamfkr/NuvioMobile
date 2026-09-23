@@ -1077,7 +1077,7 @@ object WatchProgressRepository {
                 delay(retryDelayMs)
             }
             meta = try {
-                MetaDetailsRepository.fetch(key.metaType, key.metaId)
+                MetaDetailsRepository.fetch(key.metaType, key.metaId, cacheResult = false)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {

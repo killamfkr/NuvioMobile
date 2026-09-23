@@ -1435,6 +1435,7 @@ private suspend fun resolveHomeNextUpCandidate(
         MetaDetailsRepository.fetch(
             type = completedEntry.content.type,
             id = contentId,
+            cacheResult = false,
         )
     } catch (error: Throwable) {
         if (error is CancellationException) throw error
